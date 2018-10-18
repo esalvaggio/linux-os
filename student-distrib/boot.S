@@ -25,8 +25,8 @@ _start:
 
 continue:
     # Load the GDT
-	lgdt gdt_ptr # <-------------ADDED THIS LINE
-
+    lgdt gdt_ptr # <-------------ADDED THIS LINE
+                 # checkpoint 1 tes
     # Load CS with the new descriptor value
     ljmp    $KERNEL_CS, $keep_going
 
