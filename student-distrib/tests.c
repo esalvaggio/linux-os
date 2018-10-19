@@ -67,6 +67,6 @@ int divide_by_zero_test(){
 void launch_tests(){
 	TEST_OUTPUT("idt_test", idt_test());
 	// launch your tests here
-	TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
+	// TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
 
 }

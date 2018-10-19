@@ -4,7 +4,7 @@
 #include "x86_desc.h"
 
 void create_IDT_entry();
-// int handlerFunction(int vectorNumber);
+
 void divide_by_zero();
 void debug();
 void not_used();
