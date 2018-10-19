@@ -103,10 +103,17 @@ void simd_exception() {
   while(1);
 }
 
+void system_call_handler() {
+  printf("system call handler\n");
+  while(1);
+}
+
 
 
 void create_IDT_entry()
 {
+
+    printf("creating entries...\n");
 //dpl of exceptions/interrupts need to be set to 0
 //dpl of system calls needs to be set to 3
 //I have no idea how to assign the handler
@@ -128,6 +135,12 @@ for(x = 0; x < NUM_VEC; x++)
     idt[x].present    = 1;            // set to 1 for intel defined interrupts
   else
     idt[x].present    = 0;            // set to 0 for other interrupts until we define them
+
+  // initialize the system call handler idt
+  if (x == 127) {
+    idt[x].present    = 1;
+    idt[x].dpl        = 3;
+  }
 
 }
 
@@ -151,6 +164,7 @@ SET_IDT_ENTRY(idt[16], floating_point_err);
 SET_IDT_ENTRY(idt[17], aligment_check_fault);
 SET_IDT_ENTRY(idt[18], machine_check);
 SET_IDT_ENTRY(idt[19], simd_exception);
+SET_IDT_ENTRY(idt[127], system_call_handler);
 
 
 
