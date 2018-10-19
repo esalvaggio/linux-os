@@ -3,6 +3,7 @@
  * vim:ts=4 noexpandtab
  */
 
+
 #ifndef _I8259_H
 #define _I8259_H
 
@@ -11,6 +12,11 @@
 /* Ports that each PIC sits on */
 #define MASTER_8259_PORT    0x20
 #define SLAVE_8259_PORT     0xA0
+
+#define MASTER_8259_DATA    0x21
+#define SLAVE_8259_DATA     0xA1
+#define IRQ0                0x20
+#define IRQ8                0x28
 
 /* Initialization control words to init each PIC.
  * See the Intel manuals for details on the meaning

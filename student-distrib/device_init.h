@@ -10,6 +10,7 @@
 #define SLAVE 0x28
 
 void PIC_send_EOI(int irq);
+void SET_PIC();
 
 
 
