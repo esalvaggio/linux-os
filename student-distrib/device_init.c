@@ -2,35 +2,20 @@
 #include "device_init.h"
 
 
-//https://wiki.osdev.org/8259_PIC
+//https://wiki.osdev.org/RTC
 
-
-void setPIC()
-{
-
-
-
-
-
-// mask PIC
-// asm(
-//   "mov %al, 0xff \n\t"
-//   "out 0xa1, %al \n\t"
-//   "out 0x21, %al \n\t"
-// );
-
-PIC_send_EOI(1);
+void RTC_Init(){
+  char prev;
+  //disable_ints();			// disable interrupts (cli)
+  outb(NMI_MASK | REG_B, CMOS_REG);		// select register B, and disable NMI
+  prev = inb(PIC_REG);	// read the current value of register B
+  outb(NMI_MASK | REG_B, CMOS_REG);		// set the index again (a read will reset the index to register D)
+  outb(prev | SET_PIE, PIC_REG);	// write the previous value OR'd with 0x40. This turns on bit 6 of register B
+//  enable_ints(); (sti)
 
 }
 
-void PIC_send_EOI(int irq)
-{
-  if(irq >= 8)
-  {
-    outb(SLAVE, PIC_EOI); //IRQ 8-15 = slave
-  }
-  else
-  {
-    outb(PIC, PIC_EOI); //IRQ 0-7 = master
-  }
+void Keyboard_Init(){
+
+  
 }
