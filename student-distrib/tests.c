@@ -21,7 +21,7 @@ static inline void assertion_failure(){
 /* Checkpoint 1 tests */
 
 /* IDT Test - Example
- * 
+ *
  * Asserts that first 10 IDT entries are not NULL
  * Inputs: None
  * Outputs: PASS/FAIL
@@ -35,12 +35,22 @@ int idt_test(){
 	int i;
 	int result = PASS;
 	for (i = 0; i < 10; ++i){
-		if ((idt[i].offset_15_00 == NULL) && 
+		if ((idt[i].offset_15_00 == NULL) &&
 			(idt[i].offset_31_16 == NULL)){
 			assertion_failure();
 			result = FAIL;
 		}
 	}
+
+	return result;
+}
+
+int divide_by_zero_test(){
+	TEST_HEADER;
+
+	int i;
+	int result = PASS;
+	i = 5/0;
 
 	return result;
 }
@@ -57,4 +67,6 @@ int idt_test(){
 void launch_tests(){
 	TEST_OUTPUT("idt_test", idt_test());
 	// launch your tests here
+	TEST_OUTPUT("divide by zero test", divide_by_zero_test());
+
 }
