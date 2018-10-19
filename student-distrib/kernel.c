@@ -8,6 +8,7 @@
 #include "i8259.h"
 #include "debug.h"
 #include "tests.h"
+#include "idt_setup.h"
 
 #define RUN_TESTS
 
@@ -135,6 +136,9 @@ void entry(unsigned long magic, unsigned long addr) {
         tss.esp0 = 0x800000;
         ltr(KERNEL_TSS);
     }
+
+    printf("Creating IDT entries...\n");
+    create_IDT_entry();
 
     /* Init the PIC */
     i8259_init();
