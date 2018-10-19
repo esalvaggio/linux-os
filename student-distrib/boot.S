@@ -25,7 +25,7 @@ _start:
 
 continue:
     # Load the GDT
-    lgdt gdt_ptr             # <-------------ADDED THIS LINE
+    lgdt gdt_desc_ptr             # <-------------ADDED THIS LINE
     # load the IDT
     lidt idt_desc_ptr        # <-------------ADDED this too
                  # checkpoint 1 tes
