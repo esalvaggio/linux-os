@@ -5,6 +5,7 @@
 #include "i8259.h"
 #include "lib.h"
 
+
 /* Interrupt masks to determine which interrupts are enabled and disabled */
 uint8_t master_mask; /* IRQs 0-7  */
 uint8_t slave_mask;  /* IRQs 8-15 */
