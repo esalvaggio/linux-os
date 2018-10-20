@@ -47,7 +47,7 @@ void enable_irq(uint32_t irq_num) {
       port = SLAVE_8259_DATA;
       irq_num -= 8;
   }
-  data = inb(port) & ~(1 << irq_num);
+  data = inb(port) & ~(0x01 << irq_num);
   outb(data, MASTER_8259_DATA);
 }
 
@@ -62,11 +62,13 @@ void disable_irq(uint32_t irq_num) {
       port = SLAVE_8259_DATA;
       irq_num -= 8;
   }
-  data = inb(port) | (1 << irq_num);
+  data = inb(port) | (0x01 << irq_num);
+
   outb(data, MASTER_8259_DATA);
 }
 
 /* Send end-of-interrupt signal for the specified IRQ */
+
 void send_eoi(uint32_t irq_num) {
 
     // check if the irq came from a slave pic, still do both commands

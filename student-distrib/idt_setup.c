@@ -108,6 +108,11 @@ void system_call_handler() {
   while(1);
 }
 
+//this function name sounds so bad omg
+void slave_handler(){
+  printf("Slave handler\n");
+  while(1);
+}
 
 
 void create_IDT_entry()
@@ -133,8 +138,8 @@ for(x = 0; x < NUM_VEC; x++)
     idt[x].reserved3  = 0;            // set to 0 to indicate interrupt gate
   }
 
-  if (x == 33)                        // set keyboard interrupt
-    idt[33].present = 1;
+  if (x == 33 || x == 40 || x == 34)                        // set keyboard interrupt
+    idt[x].present = 1;
   // initialize the system call handler idt
   if (x == 127) {
     idt[x].present    = 1;
@@ -165,4 +170,5 @@ SET_IDT_ENTRY(idt[18], machine_check);
 SET_IDT_ENTRY(idt[19], simd_exception);
 SET_IDT_ENTRY(idt[127], system_call_handler);
 
+SET_IDT_ENTRY(idt[34], slave_handler);
 }

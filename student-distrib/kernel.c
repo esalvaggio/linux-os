@@ -142,24 +142,28 @@ void entry(unsigned long magic, unsigned long addr) {
     printf("Creating IDT entries...\n");
     create_IDT_entry();
 
-    Keyboard_Init();
 
     /* Init the PIC */
     i8259_init();
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
+     printf("Enabling Keyboard\n");
+     Keyboard_Init();
+     printf("Enabling RTC\n");
+     //RTC_Init();
+
 
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
      * IDT correctly otherwise QEMU will triple fault and simple close
      * without showing you any output */
-    /*printf("Enabling Interrupts\n");
-    sti();*/
+    printf("Enabling Interrupts\n");
+    sti();
 
 #ifdef RUN_TESTS
     /* Run tests */
-    launch_tests();
+    //launch_tests();
 #endif
     /* Execute the first program ("shell") ... */
 

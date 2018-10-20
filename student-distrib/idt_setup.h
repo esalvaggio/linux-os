@@ -26,4 +26,6 @@ void aligment_check_fault();
 void machine_check();
 void simd_exception();
 
+void slave_handler();
+
 #endif
