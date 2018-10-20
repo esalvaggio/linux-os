@@ -2,6 +2,10 @@
 #include "device_init.h"
 
 
+#define STATUS_PORT     0x64
+#define DATA_PORT       0x60
+
+
 //https://wiki.osdev.org/RTC
 
 void RTC_Init(){
@@ -15,36 +19,33 @@ void RTC_Init(){
 
 }
 
-<<<<<<< HEAD
-void Keyboard_Init(){
-
-=======
 void Keyboard_Handler() {
   printf("Set keyboard handler 3\n");
+
   unsigned char status, output_key;
   char scan_code;
 
-  send_eoi(1);
 
-  status = inb(STATUS_PORT);
+  while(1) {
 
-  if (status & 0x01) {
-        scan_code = inb(DATA_PORT);
-        if (scan_code < 0)
-            return;
+    status = inb(STATUS_PORT);
 
-        output_key = keysofthekeys[scan_code];
-        printf("%u", output_key);
+    if (status & 0x01) {
+          scan_code = inb(DATA_PORT);
+          printf("scan code: %d\n", scan_code);
 
+
+          if (scan_code >= 0) {
+            output_key = keysofthekeys[scan_code];
+            printf("%c\n", output_key);
+          }
+    }
   }
+
+    send_eoi(1);
 }
->>>>>>> refs/remotes/origin/checkpoint1
 
 void Keyboard_Init() {
-    // printf("Set keyboard handler\n");
-    // printf("Set keyboard handler 1\n");
     SET_IDT_ENTRY(idt[33], Keyboard_Handler);
-    // enable_irq(1);
-    outb(0xFD, 0x21);
-    // printf("Set keyboard handler 2\n");
+    enable_irq(1);
 }
