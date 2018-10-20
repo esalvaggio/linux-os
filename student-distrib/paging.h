@@ -4,8 +4,8 @@
 void Paging_Init();
 
 #define table_size 1024
-uint32_t page_directory[1024];
-uint32_t page_table[1024];
+uint32_t page_directory[1024] __attribute__((aligned (4096)));
+uint32_t page_table[1024] __attribute__((aligned (4096)));
 
 
 

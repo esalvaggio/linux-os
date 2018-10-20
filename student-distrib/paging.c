@@ -4,21 +4,26 @@
 void Paging_Init(){
 
   int i;
-  for(i = 0; i++; i<table_size){
+  for(i = 0; i<table_size; i++){
       page_directory[i] = 0; //change 0 to correct initialization value
       page_table[i] = 0; //change
-
   }
-  
+// page_directory[1] =
+// page_directory[0] =
+//page_table[]
+
   //Turn on paging, not yet initialized tables
   //input page directory in here
   /* moves page directory addr into cr3,cr4*/
-  asm volatile ("             \n\
-                  movl %0, %%eax    \n\
-                  movl %%eax, %%cr  3   \n\
-                  movl %%cr4, %%eax  \n\
-                  orl 0x00000010,  %%eax \n\
-                  movl %%eax, %%cr4  \n\
+  asm volatile ("                         \n\
+                  movl %0, %%eax          \n\
+                  movl %%eax, %%cr3       \n\
+                  movl %%cr4, %%eax       \n\
+                  orl $0x10, %%eax        \n\
+                  movl %%eax, %%cr4       \n\
+                  movl %%cr0, %%eax       \n\
+                  orl  $0x80000001, %%eax \n\
+                  movl %%eax, %%cr0       \n\
                 "
                 :             /* (no) ouput */
                 : "r"(page_directory)   // page_directory as input. r means go through a regster
