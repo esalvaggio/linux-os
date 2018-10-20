@@ -19,16 +19,6 @@ void RTC_Init(){
 
 }
 
-void Keyboard_Init() {
-    printf("Set keyboard handler\n");
-    idt[33].present = 1;
-    SET_IDT_ENTRY(idt[33], Keyboard_Handler);
-    printf("Set keyboard handler 1\n");
-    enable_irq(1);
-    // outb(0xFD, 0x21);
-    printf("Set keyboard handler 2\n");
-}
-
 void Keyboard_Handler() {
   printf("Set keyboard handler 3\n");
   unsigned char status, output_key;
@@ -47,5 +37,13 @@ void Keyboard_Handler() {
         printf("%u", output_key);
 
   }
+}
 
+void Keyboard_Init() {
+    // printf("Set keyboard handler\n");
+    // printf("Set keyboard handler 1\n");
+    SET_IDT_ENTRY(idt[33], Keyboard_Handler);
+    // enable_irq(1);
+    outb(0xFD, 0x21);
+    // printf("Set keyboard handler 2\n");
 }
