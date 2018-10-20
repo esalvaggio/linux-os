@@ -152,6 +152,8 @@ void entry(unsigned long magic, unsigned long addr) {
      Keyboard_Init();
      printf("Enabling RTC\n");
      //RTC_Init();
+     //printf("Enabling Paging\n");
+     //Paging_Init();
 
 
     /* Enable interrupts */
