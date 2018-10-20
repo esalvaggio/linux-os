@@ -12,6 +12,9 @@ uint8_t slave_mask;  /* IRQs 8-15 */
 
 /* Initialize the 8259 PIC */
 void i8259_init(void) {
+    master_mask = 0xFF;
+    slave_mask = 0xFF;
+
     // initialize the master and slave pics
     outb(ICW1, MASTER_8259_PORT);
     outb(ICW1, SLAVE_8259_PORT);
@@ -29,8 +32,8 @@ void i8259_init(void) {
     outb(ICW4, SLAVE_8259_DATA);
 
     // all done, clear out data registers
-    outb(NULL, MASTER_8259_DATA);
-    outb(NULL, SLAVE_8259_DATA);
+    outb(master_mask, MASTER_8259_DATA);
+    outb(slave_mask, SLAVE_8259_DATA);
 }
 
 /* Enable (unmask) the specified IRQ */
@@ -45,7 +48,7 @@ void enable_irq(uint32_t irq_num) {
       irq_num -= 8;
   }
   data = inb(port) & ~(1 << irq_num);
-  outb(data, port);
+  outb(data, MASTER_8259_DATA);
 }
 
 /* Disable (mask) the specified IRQ */
@@ -60,7 +63,7 @@ void disable_irq(uint32_t irq_num) {
       irq_num -= 8;
   }
   data = inb(port) | (1 << irq_num);
-  outb(data, port);
+  outb(data, MASTER_8259_DATA);
 }
 
 /* Send end-of-interrupt signal for the specified IRQ */
