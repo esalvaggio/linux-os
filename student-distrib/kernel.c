@@ -137,8 +137,12 @@ void entry(unsigned long magic, unsigned long addr) {
         ltr(KERNEL_TSS);
     }
 
+    clear();
+
     printf("Creating IDT entries...\n");
     create_IDT_entry();
+
+    Keyboard_Init();
 
     /* Init the PIC */
     i8259_init();

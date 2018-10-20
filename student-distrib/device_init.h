@@ -2,6 +2,8 @@
 #define DEVICE_INIT_H
 
 #include "x86_desc.h"
+#include "i8259.h"
+#include "lib.h"
 
 //https://wiki.osdev.org/8259_PIC
 
@@ -16,7 +18,8 @@
 
 void RTC_Init();
 void Keyboard_Init();
+void Keyboard_Handler();
 
-unsigned char * keybindings= {'\n','0','1','2','3','4','5','6','7','8','9','0','-','='};
+unsigned char keysofthekeys[14] = {'\n','0','1','2','3','4','5','6','7','8','9','0','-','='};
 
 #endif
