@@ -15,6 +15,8 @@ RTC init is working, but throws an simd_exception
 */
 void RTC_Init(){
     char prev;
+    idt[34].present = 1;
+    idt[40].present = 1;
     outb(NMI_MASK | REG_B, CMOS_REG);		// select register B, and disable NMI
     prev = inb(PIC_REG);	// read the current value of register B
     outb(NMI_MASK | REG_B, CMOS_REG);		// set the index again (a read will reset the index to register D)
@@ -60,6 +62,7 @@ void Keyboard_Handler() {
 }
 
 void Keyboard_Init() {
+    idt[33].present = 1;
     SET_IDT_ENTRY(idt[33], Keyboard_Handler);
     enable_irq(1);
 }

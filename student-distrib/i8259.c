@@ -68,12 +68,19 @@ void disable_irq(uint32_t irq_num) {
 }
 
 /* Send end-of-interrupt signal for the specified IRQ */
-
+/*
+Uses OCW2 (specified on page 13 of 8259A datasheet)
+[R, SL, EOI, 0, 0 ,L2, L1, L0]
+Where R = 0, SL == EOI == 1 (0x60) for top byte,
+and L0-L2 specify address of interrupt
+*/
 void send_eoi(uint32_t irq_num) {
 
     // check if the irq came from a slave pic, still do both commands
-    if (irq_num >= 8)
-      outb(EOI, SLAVE_8259_PORT);
-
-    outb(EOI, MASTER_8259_PORT);
+    if (irq_num >= 8){
+      irq_num -= 8;
+      outb(EOI | irq_num, SLAVE_8259_PORT);
+      irq_num = 2;
+    }
+    outb(EOI | irq_num, MASTER_8259_PORT);
 }

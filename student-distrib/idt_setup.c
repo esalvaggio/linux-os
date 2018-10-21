@@ -138,7 +138,7 @@ for(x = 0; x < NUM_VEC; x++)
     idt[x].reserved3  = 0;            // set to 0 to indicate interrupt gate
   }
 
-  if (x == 33 || x == 40 || x == 34)                        // set keyboard interrupt
+  if (x == 34)                        // set keyboard interrupt
     idt[x].present = 1;
   // initialize the system call handler idt
   if (x == 127) {

@@ -151,7 +151,7 @@ void entry(unsigned long magic, unsigned long addr) {
      printf("Enabling Keyboard\n");
      Keyboard_Init();
      printf("Enabling RTC\n");
-     //RTC_Init();
+     //RTC_Init();      --> Raises "segment not present" error when this line is run
      printf("Enabling Paging\n");
      Paging_Init();
 
