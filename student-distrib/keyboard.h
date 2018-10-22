@@ -5,8 +5,13 @@
 #include "i8259.h"
 #include "lib.h"
 
-#define STATUS_PORT     0x64
-#define DATA_PORT       0x60
+#define STATUS_PORT      0x64
+#define DATA_PORT        0x60
+#define CAPS_LOCK        58
+#define SHIFT_LEFT_PRESS 42
+#define SHIFT_LEFT_RELEASE -86 
+#define SHIFT_RIGHT_PRESS 54
+#define SHIFT_RIGHT_RELEASE -74
 
 void Keyboard_Init();
 void Keyboard_Handler();
