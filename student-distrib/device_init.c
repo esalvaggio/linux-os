@@ -2,9 +2,6 @@
 #include "device_init.h"
 
 
-#define STATUS_PORT     0x64
-#define DATA_PORT       0x60
-
 
 //https://wiki.osdev.org/RTC
 
@@ -34,35 +31,4 @@ void RTC_Handler(){
     send_eoi(8);
     outb(0x0C, CMOS_REG);	// select register C
     inb(PIC_REG);		// just throw away contents
-}
-
-void Keyboard_Handler() {
-  printf("Set keyboard handler 3\n");
-
-  unsigned char status, output_key;
-  char scan_code;
-
-
-  while(1) {
-
-    status = inb(STATUS_PORT);
-
-    if (status & 0x01) {
-          scan_code = inb(DATA_PORT);
-          //printf("scan code: %d\n", scan_code);
-
-          if (scan_code >= 0) {
-            output_key = keyboard_map[scan_code];
-            printf("%c", output_key);
-          }
-    }
-  }
-
-    send_eoi(1);
-}
-
-void Keyboard_Init() {
-    idt[33].present = 1;
-    SET_IDT_ENTRY(idt[33], Keyboard_Handler);
-    enable_irq(1);
 }
