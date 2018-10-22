@@ -55,6 +55,20 @@ int divide_by_zero_test(){
 	return result;
 }
 
+int paging_test(){
+
+	int * validAddress1 = 0xB8000;
+	int * validAddress2 = 0xB8FFC;
+	printf("Inside valid VGA memory address 1: %d\n", *validAddress1);
+	printf("Inside valid VGA memory address 2: %d\n", *validAddress2);
+	// int * invalidAddress = 0xB8000 - 0x01;
+	// int * invalidAddress = 0x0;
+	int * invalidAddress = 0xB8FFF;
+	printf("Inside invalid address: ");
+	printf("%d\n", *invalidAddress);
+	// return *invalidAddress;
+	return *validAddress1;
+}
 // add more tests here
 
 /* Checkpoint 2 tests */
@@ -66,7 +80,8 @@ int divide_by_zero_test(){
 /* Test suite entry point */
 void launch_tests(){
 	TEST_OUTPUT("idt_test", idt_test());
+	TEST_OUTPUT("paging_test",paging_test())
 	// launch your tests here
-	// TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
+	TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
 
 }
