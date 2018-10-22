@@ -15,7 +15,7 @@ void Paging_Init(){
 //we initially set all the values to 0, which marks it all as unusable, then later
 //define the usuable areas
   int i;
-  for(i = 0; i<table_size; i++){
+  for(i = 0; i<TABLE_SIZE; i++){
       page_directory[i] = 0; //change 0 to correct initialization value
       page_table[i] = 0; //change
   }

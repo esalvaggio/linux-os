@@ -9,6 +9,8 @@
 #include "debug.h"
 #include "tests.h"
 #include "idt_setup.h"
+#include "device_init.h"
+#include "paging.h"
 
 #define RUN_TESTS
 
@@ -151,7 +153,7 @@ void entry(unsigned long magic, unsigned long addr) {
      printf("Enabling Keyboard\n");
      Keyboard_Init();
      printf("Enabling RTC\n");
-     //RTC_Init();      --> Raises "segment not present" error when this line is run
+     RTC_Init();      //--> Raises "segment not present" error when this line is run
      printf("Enabling Paging\n");
      Paging_Init();
 
@@ -162,6 +164,7 @@ void entry(unsigned long magic, unsigned long addr) {
      * without showing you any output */
     printf("Enabling Interrupts\n");
     sti();
+    //test_interrupts();
 
 #ifdef RUN_TESTS
     /* Run tests */

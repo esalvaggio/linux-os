@@ -49,26 +49,46 @@ int divide_by_zero_test(){
 	TEST_HEADER;
 
 	int i;
+	int j = 0;
 	int result = PASS;
-	i = 5/0;
+	i = 5/j;
 
 	return result;
 }
 
 int paging_test(){
 
-	int * validAddress1 = 0xB8000;
-	int * validAddress2 = 0xB8FFC;
+	int * validAddress1 = (int *)0xB8000;
+	int * validAddress2 = (int *)0xB8FFC;
 	printf("Inside valid VGA memory address 1: %d\n", *validAddress1);
 	printf("Inside valid VGA memory address 2: %d\n", *validAddress2);
 	// int * invalidAddress = 0xB8000 - 0x01;
 	// int * invalidAddress = 0x0;
-	int * invalidAddress = 0xB8FFF;
+	int * invalidAddress = (int *)0xB8FFF;
 	printf("Inside invalid address: ");
 	printf("%d\n", *invalidAddress);
 	// return *invalidAddress;
 	return *validAddress1;
 }
+/*
+int RTC_Test(){
+		TEST_HEADER;
+		SET_IDT_ENTRY(40, RTC_Test_Handler);
+		int i;
+		for (i = 0; i < 100000; i++)
+
+		SET_IDT_ENTRY(40, RTC_Handler())
+		return PASS;
+}
+
+void RTC_Test_Handler(){
+		printf("RTC Interrupt");
+    outb(0x0C, 0x0C);	// select register C
+    inb(PIC_REG);		// just throw away contents
+    sti();
+    send_eoi(8);
+}*/
+
 // add more tests here
 
 /* Checkpoint 2 tests */

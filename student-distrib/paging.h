@@ -3,7 +3,8 @@
 
 void Paging_Init();
 
-#define table_size 1024
+#define TABLE_SIZE 1024
+#define AMT_BYTE     4096
 #define KERNEL_LOAD_ADDR 0x400000
 #define PRESENT_BIT 0x01
 #define SHIFTED_VGA_ADDR 0xB8
@@ -14,8 +15,8 @@ void Paging_Init();
 
 
 
-uint32_t page_directory[1024] __attribute__((aligned (4096)));
-uint32_t page_table[1024] __attribute__((aligned (4096)));
+uint32_t page_directory[TABLE_SIZE] __attribute__((aligned (AMT_BYTE)));
+uint32_t page_table[TABLE_SIZE] __attribute__((aligned (AMT_BYTE)));
 
 
 

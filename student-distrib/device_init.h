@@ -15,19 +15,17 @@
 
 #define REG_A    0x0A
 #define REG_B    0x0B
+#define REG_C    0x0C
 #define SET_PIE  0x40
 
 void RTC_Init();
 void Keyboard_Init();
 void Keyboard_Handler();
 void RTC_Handler();
-unsigned char keysofthekeys[17] = {0,27,'1','2','3','4','5',
-                                  '6','7','8','9','0','-','=',
-                                  '\b', '\t'};
 
 //https://github.com/arjun024/mkeykernel/blob/master/keyboard_map.h
 //Obviously this is incomplete but every key is shown
-unsigned char keyboard_map[128] ={
+static unsigned char keyboard_map[128] ={
                                     0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
                                     '9', '0', '-', '=', '\b',	/* Backspace */
                                     '\t',			/* Tab */

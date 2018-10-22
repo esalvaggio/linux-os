@@ -41,11 +41,11 @@ void enable_irq(uint32_t irq_num) {
   uint16_t port;
   uint8_t data;
 
-  if(irq_num < 8) {
+  if(irq_num < EIGHT) {
       port = MASTER_8259_DATA;
   } else {
       port = SLAVE_8259_DATA;
-      irq_num -= 8;
+      irq_num -= EIGHT;
   }
   data = inb(port) & ~(0x01 << irq_num);
   outb(data, port);
@@ -56,11 +56,11 @@ void disable_irq(uint32_t irq_num) {
   uint16_t port;
   uint8_t data;
 
-  if(irq_num < 8) {
+  if(irq_num < EIGHT) {
       port = MASTER_8259_DATA;
   } else {
       port = SLAVE_8259_DATA;
-      irq_num -= 8;
+      irq_num -= EIGHT;
   }
   data = inb(port) | (0x01 << irq_num);
 
@@ -77,8 +77,8 @@ and L0-L2 specify address of interrupt
 void send_eoi(uint32_t irq_num) {
 
     // check if the irq came from a slave pic, still do both commands
-    if (irq_num >= 8){
-      irq_num -= 8;
+    if (irq_num >= EIGHT){
+      irq_num -= EIGHT;
       outb(EOI | irq_num, SLAVE_8259_PORT);
       irq_num = 2;
     }
