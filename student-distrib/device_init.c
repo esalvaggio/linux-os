@@ -3,32 +3,28 @@
 #define STATUS_PORT     0x64
 #define DATA_PORT       0x60
 
-#define VIDEO       0xB8000
-#define NUM_COLS    80
-#define NUM_ROWS    25
+#define KEYBOARD_INDEX 33
+#define RTC_INDEX   40
 
 
-static char* video_mem = (char *)VIDEO;
+
 
 //https://wiki.osdev.org/RTC
 
 
-/*
-RTC init is working, but throws an simd_exception
-'segment not present' when the idt is called.
-*/
-void test_interrupts2(void) {
-    int32_t i;
-    for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
-        video_mem[i << 1]++;
-    }
-}
+
+
+//RTC_INIT
+//Inputs: none
+//OUTPUTS: none
+//This function initializes the RTC by setting the appropriate IDT entry and
+//reading from/writing to Register B
 void RTC_Init(){
     cli();
     char prev;
     //idt[34].present = 1;
-    idt[40].present = 1;
-    SET_IDT_ENTRY(idt[40], RTC_Handler);
+    idt[RTC_INDEX].present = 1;
+    SET_IDT_ENTRY(idt[RTC_INDEX], RTC_Handler); //index 40 is the RTC in the IDT
 
     outb(NMI_MASK | REG_B, CMOS_REG);		// select register B, and disable NMI
     prev = inb(PIC_REG);	// read the current value of register B
@@ -38,46 +34,62 @@ void RTC_Init(){
     inb(PIC_REG);		// just throw away contents
 
 
-    enable_irq(2);
-    enable_irq(8);
+    enable_irq(2); //enables slave port on master
+    enable_irq(8); //enables rtc port on slave
     sti();
 }
-//This has never been called
+
+//RTC_Handler
+//Inputs: none
+//Outputs: none
+//This function reads from Register C in order to accept interrupts from the RTC,
+//and then sends an EOI to alert the PIC
 void RTC_Handler(){
 
     outb(REG_C, CMOS_REG);	// select register C
     inb(PIC_REG);		// just throw away contents
     sti();
 
-    send_eoi(8);
+    send_eoi(8); //rtc port on slave
 }
 
+//Keyboard_Handler
+//inputs: none
+//outputs: none
+//This function reads in data from the keyboard, maps the key to the ascii,
+//and then displays it on screen. It finishes by sending EOI
 void Keyboard_Handler() {
-
+  cli();
     unsigned char status, output_key;
     char scan_code;
 
     status = inb(STATUS_PORT);
 
-    if (status & 0x01) {
+    if (status & 0x01) { //last value of status is the character to be displayed
           scan_code = inb(DATA_PORT);
           //printf("scan code: %d\n", scan_code);
 
-          if (scan_code >= 0) {
-            output_key = keyboard_map[(unsigned char)scan_code];
-            printf("%c", output_key);
+          if (scan_code >= 0) { //read something from the keyboard
+            output_key = keyboard_map[(unsigned char)scan_code]; //map the key
+            printf("%c", output_key); //print to screen
           }
 
-          scan_code = inb(DATA_PORT);
+
     }
     sti();
-    send_eoi(1);
+    send_eoi(1); //keyboard port on master
 
 
 }
 
+
+//Keyboard_Init
+//Inputs: none
+//Outputs: none
+//This function sets the appropriate entry in the IDT to enable the keyboard and also
+//enables the irq in the master PIC
 void Keyboard_Init() {
-    idt[33].present = 1;
-    SET_IDT_ENTRY(idt[33], Keyboard_Handler);
-    enable_irq(1);
+    idt[KEYBOARD_INDEX].present = 1; //index is present
+    SET_IDT_ENTRY(idt[KEYBOARD_INDEX], Keyboard_Handler); //index 33 is the keyboard in the IDT
+    enable_irq(1); //keyboard port on master
 }
