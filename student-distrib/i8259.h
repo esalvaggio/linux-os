@@ -3,6 +3,7 @@
  * vim:ts=4 noexpandtab
  */
 
+
 #ifndef _I8259_H
 #define _I8259_H
 
@@ -11,6 +12,9 @@
 /* Ports that each PIC sits on */
 #define MASTER_8259_PORT    0x20
 #define SLAVE_8259_PORT     0xA0
+
+#define MASTER_8259_DATA    0x21
+#define SLAVE_8259_DATA     0xA1
 
 /* Initialization control words to init each PIC.
  * See the Intel manuals for details on the meaning
@@ -21,6 +25,8 @@
 #define ICW3_MASTER         0x04
 #define ICW3_SLAVE          0x02
 #define ICW4                0x01
+
+#define EIGHT               0x08
 
 /* End-of-interrupt byte.  This gets OR'd with
  * the interrupt number and sent out to the PIC
