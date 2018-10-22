@@ -48,7 +48,7 @@ void enable_irq(uint32_t irq_num) {
       irq_num -= 8;
   }
   data = inb(port) & ~(0x01 << irq_num);
-  outb(data, MASTER_8259_DATA);
+  outb(data, port);
 }
 
 /* Disable (mask) the specified IRQ */
@@ -64,7 +64,7 @@ void disable_irq(uint32_t irq_num) {
   }
   data = inb(port) | (0x01 << irq_num);
 
-  outb(data, MASTER_8259_DATA);
+  outb(data, port);
 }
 
 /* Send end-of-interrupt signal for the specified IRQ */
