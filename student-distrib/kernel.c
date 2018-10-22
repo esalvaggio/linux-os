@@ -144,7 +144,6 @@ void entry(unsigned long magic, unsigned long addr) {
     printf("Creating IDT entries...\n");
     create_IDT_entry();
 
-
     /* Init the PIC */
     i8259_init();
 
@@ -152,8 +151,10 @@ void entry(unsigned long magic, unsigned long addr) {
      * PIC, any other initialization stuff... */
      printf("Enabling Keyboard\n");
      Keyboard_Init();
+
      printf("Enabling RTC\n");
-     RTC_Init();      //--> Raises "segment not present" error when this line is run
+     RTC_Init();
+
      printf("Enabling Paging\n");
      Paging_Init();
 
@@ -164,11 +165,10 @@ void entry(unsigned long magic, unsigned long addr) {
      * without showing you any output */
     printf("Enabling Interrupts\n");
     sti();
-    //test_interrupts();
 
 #ifdef RUN_TESTS
     /* Run tests */
-    //launch_tests();
+    launch_tests();
 #endif
     /* Execute the first program ("shell") ... */
 

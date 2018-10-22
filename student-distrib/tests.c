@@ -45,7 +45,7 @@ int idt_test(){
 	return result;
 }
 
-/* Divide By Zero Test 
+/* Divide By Zero Test
  *
  * Divides by 0 and triggers a divide by zero exception
  * Inputs: None
@@ -57,51 +57,34 @@ int divide_by_zero_test(){
 
 	int i;
 	int j = 0;
-	int result = PASS;
+	int result = FAIL;
 	i = 5/j;
 
 	return result;
 }
 
-/* Paging Test 
+/* Paging Test
  *
  * Prints contents of addresses in video memory which has
  * been marked as valid by Paging.c, which correctly works,
  * then attempts to print content outside of video memory
- * and triggers a page fault, as expected 
+ * and triggers a page fault, as expected
  * Inputs: None
  * Outputs: PASS
  * Side Effects: Program is stuck in Divide by zero exception
  */
 int paging_test(){
+	TEST_HEADER;
 
 	int * validAddress1 = (int *)0xB8000;
 	int * validAddress2 = (int *)0xB8FFC;
-	printf("Inside valid VGA memory address 1: %d\n", *validAddress1);
-	printf("Inside valid VGA memory address 2: %d\n", *validAddress2);
+	printf("Inside valid Video memory address 1: %d\n", *validAddress1);
+	printf("Inside valid Video memory address 2: %d\n", *validAddress2);
 	int * invalidAddress = (int *)0xB8FFF;
 	printf("Inside invalid address: ");
 	printf("%d\n", *invalidAddress);
 	return PASS;
 }
-/*
-int RTC_Test(){
-		TEST_HEADER;
-		SET_IDT_ENTRY(40, RTC_Test_Handler);
-		int i;
-		for (i = 0; i < 100000; i++)
-
-		SET_IDT_ENTRY(40, RTC_Handler())
-		return PASS;
-}
-
-void RTC_Test_Handler(){
-		printf("RTC Interrupt");
-    outb(0x0C, 0x0C);	// select register C
-    inb(PIC_REG);		// just throw away contents
-    sti();
-    send_eoi(8);
-}*/
 
 // add more tests here
 
@@ -113,9 +96,8 @@ void RTC_Test_Handler(){
 
 /* Test suite entry point */
 void launch_tests(){
-	TEST_OUTPUT("idt_test", idt_test());
-	TEST_OUTPUT("paging_test",paging_test())
-	// launch your tests here
-	TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
-
+	// TEST_OUTPUT("idt_test", idt_test());
+	// TEST_OUTPUT("paging_test", paging_test());
+	// TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
+	/* to test RTC, go to device_init.c */
 }
