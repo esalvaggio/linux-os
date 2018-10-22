@@ -45,6 +45,13 @@ int idt_test(){
 	return result;
 }
 
+/* Divide By Zero Test 
+ *
+ * Divides by 0 and triggers a divide by zero exception
+ * Inputs: None
+ * Outputs: PASS
+ * Side Effects: Program is stuck in Divide by zero exception
+ */
 int divide_by_zero_test(){
 	TEST_HEADER;
 
@@ -56,19 +63,26 @@ int divide_by_zero_test(){
 	return result;
 }
 
+/* Paging Test 
+ *
+ * Prints contents of addresses in video memory which has
+ * been marked as valid by Paging.c, which correctly works,
+ * then attempts to print content outside of video memory
+ * and triggers a page fault, as expected 
+ * Inputs: None
+ * Outputs: PASS
+ * Side Effects: Program is stuck in Divide by zero exception
+ */
 int paging_test(){
 
 	int * validAddress1 = (int *)0xB8000;
 	int * validAddress2 = (int *)0xB8FFC;
 	printf("Inside valid VGA memory address 1: %d\n", *validAddress1);
 	printf("Inside valid VGA memory address 2: %d\n", *validAddress2);
-	// int * invalidAddress = 0xB8000 - 0x01;
-	// int * invalidAddress = 0x0;
 	int * invalidAddress = (int *)0xB8FFF;
 	printf("Inside invalid address: ");
 	printf("%d\n", *invalidAddress);
-	// return *invalidAddress;
-	return *validAddress1;
+	return PASS;
 }
 /*
 int RTC_Test(){
