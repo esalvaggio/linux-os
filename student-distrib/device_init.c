@@ -2,23 +2,11 @@
 
 #define STATUS_PORT     0x64
 #define DATA_PORT       0x60
-#define LOW_BITMASK     0x01
-#define KEYBOARD_IRQ       1
 #define SLAVE_IRQ          2
 #define RTC_IRQ            8
-#define KEYBOARD_INDEX    33
 #define RTC_INDEX         40
 
 //https://wiki.osdev.org/RTC
-
-unsigned char keyboard_map[KB_MAP_SIZE] = {
-                                    0,  27, '1', '2', '3', '4', '5', '6', '7', '8',
-                                    '9', '0', '-', '=', '\b','\t','q', 'w', 'e', 'r',
-                                    't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n', 0,
-                                    'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',
-                                   '\'', '`',   0,'\\', 'z', 'x', 'c', 'v', 'b', 'n',
-                                    'm', ',', '.', '/',   0,'*',0,' ',0
-                                  };
 
 /* RTC_INIT
  * Inputs: none
@@ -60,43 +48,4 @@ void RTC_Handler(){
     sti();
 
     send_eoi(RTC_IRQ); //rtc port on slave
-}
-
-/* Keyboard_Handler
- * inputs: none
- * outputs: none
- * This function reads in data from the keyboard, maps the key to the ascii,
- * and then displays it on screen. It finishes by sending EOI
- */
-void Keyboard_Handler() {
-    cli();
-    unsigned char status, output_key;
-    char scan_code;
-
-    status = inb(STATUS_PORT);
-
-    if (status & LOW_BITMASK) {  // get last bit value of status is the character to be displayed
-          scan_code = inb(DATA_PORT);
-
-          if (scan_code >= 0)
-          {   //read something from the keyboard
-            output_key = keyboard_map[(unsigned char)scan_code]; //map the key
-            printf("%c", output_key);   //print to screen
-          }
-    }
-    sti();
-    send_eoi(KEYBOARD_IRQ);   //keyboard port on master
-}
-
-
-/* Keyboard_Init
- * Inputs: none
- * Outputs: none
- * This function sets the appropriate entry in the IDT to enable the keyboard and also
- * enables the irq in the master PIC
- */
-void Keyboard_Init() {
-    idt[KEYBOARD_INDEX].present = 1; //index is present
-    SET_IDT_ENTRY(idt[KEYBOARD_INDEX], Keyboard_Handler); //index 33 is the keyboard in the IDT
-    enable_irq(KEYBOARD_IRQ); //keyboard port on master
 }

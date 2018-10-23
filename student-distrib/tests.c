@@ -71,7 +71,7 @@ int divide_by_zero_test(){
  * and triggers a page fault, as expected
  * Inputs: None
  * Outputs: PASS
- * Side Effects: Program is stuck in Divide by zero exception
+ * Side Effects: Program is stuck in Page Fault Exception
  */
 int paging_test(){
 	TEST_HEADER;

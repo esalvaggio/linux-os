@@ -17,7 +17,6 @@
 #define REG_B    0x0B
 #define REG_C    0x0C
 #define SET_PIE  0x40
-#define KB_MAP_SIZE   60
 
 void RTC_Init();
 void RTC_Handler();

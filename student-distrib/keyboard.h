@@ -1,5 +1,5 @@
-#ifndef KEYBOARD
-#define KEYBOARD
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
 
 #include "x86_desc.h"
 #include "i8259.h"
@@ -12,15 +12,14 @@
 #define SHIFT_LEFT_RELEASE -86 
 #define SHIFT_RIGHT_PRESS 54
 #define SHIFT_RIGHT_RELEASE -74
+#define KB_MAP_SIZE   60
+#define KB_CAPS_CASES 4
+#define LOW_BITMASK     0x01
+#define KEYBOARD_INDEX    33
+#define KEYBOARD_IRQ       1
 
 void Keyboard_Init();
 void Keyboard_Handler();
-unsigned char keysofthekeys[17] = {0,27,'1','2','3','4','5',
-                                  '6','7','8','9','0','-','=',
-                                  '\b', '\t'};
-
-//https://github.com/arjun024/mkeykernel/blob/master/keyboard_map.h
-//Obviously this is incomplete but every key is shown
 
 
 #endif

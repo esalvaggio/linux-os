@@ -11,6 +11,7 @@
 #include "idt_setup.h"
 #include "device_init.h"
 #include "paging.h"
+#include "keyboard.h"
 
 #define RUN_TESTS
 
@@ -168,7 +169,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 #ifdef RUN_TESTS
     /* Run tests */
-    launch_tests();
+    // launch_tests();
 #endif
     /* Execute the first program ("shell") ... */
 
