@@ -5,6 +5,7 @@
 #include "i8259.h"
 #include "lib.h"
 
+
 //https://wiki.osdev.org/8259_PIC
 
 #define CMOS_REG 0x70 /*CMOS register is located at port 0x70*/
@@ -14,10 +15,11 @@
 
 #define REG_A    0x0A
 #define REG_B    0x0B
+#define REG_C    0x0C
 #define SET_PIE  0x40
+#define KB_MAP_SIZE   60
 
 void RTC_Init();
 void RTC_Handler();
-
 
 #endif

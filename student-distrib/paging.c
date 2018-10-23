@@ -2,20 +2,20 @@
 #include "paging.h"
 
 
-/*
-creates a page directory and page table, initializes both to 0,
-creates 2 elements in page directory, one in 4KB and one in 4MB
-creates page table entry (page) in the 4kB page memory
-asm code puts page directory address into cr0
-
-*/
+/* Paging Initialization   
+ *
+ * Creates a page directory and page table, initializes both to 0.
+ * Creates 2 elements in page directory, one in 4KB and one in 4MB.
+ * Creates page table entry (page) in the 4kB page Video memory.
+ * Asm code puts page directory address into cr0, sets up 4MB mem.
+ */
 
 void Paging_Init(){
 
 //we initially set all the values to 0, which marks it all as unusable, then later
 //define the usuable areas
   int i;
-  for(i = 0; i<table_size; i++){
+  for(i = 0; i<TABLE_SIZE; i++){
       page_directory[i] = 0; //change 0 to correct initialization value
       page_table[i] = 0; //change
   }
