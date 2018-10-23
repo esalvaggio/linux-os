@@ -17,6 +17,9 @@
 #define LOW_BITMASK     0x01
 #define KEYBOARD_INDEX    33
 #define KEYBOARD_IRQ       1
+#define CTRL_KEY_DOWN     29
+#define CTRL_KEY_UP       -99
+#define L_KEY_DOWN        38
 
 void Keyboard_Init();
 void Keyboard_Handler();

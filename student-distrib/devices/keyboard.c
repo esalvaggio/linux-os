@@ -7,6 +7,8 @@
   int shift_flag=0;
   int shift_pressed = 0;
   int shift_released = 0;
+  int ctrl_flag = 0;
+  int clear_flag = 0;
 
 static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
                                           '\0','\0', '1', '2', '3', '4', '5', '6', '7', '8',
@@ -53,10 +55,21 @@ static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular key
  */
 void Keyboard_Handler() {
     cli();
+    clear_flag = 0;
     status = inb(STATUS_PORT);
     if (status & LOW_BITMASK) { // get last bit value of status is the character to be displayed
           scan_code = inb(DATA_PORT);
-
+          // printf("%d",scan_code);
+          if(scan_code == CTRL_KEY_DOWN){
+                ctrl_flag = 1;
+          }
+          if(scan_code == CTRL_KEY_UP){
+            ctrl_flag = 0;
+          }
+          if(scan_code == L_KEY_DOWN && ctrl_flag == 1){
+              clear();
+              clear_flag = 1;
+          }
           if(scan_code == SHIFT_LEFT_PRESS || scan_code == SHIFT_RIGHT_PRESS){
               shift_pressed = 1;
           }
@@ -66,6 +79,7 @@ void Keyboard_Handler() {
           if (scan_code >= 0) {
             //checks if caps lock is set
             if(scan_code == CAPS_LOCK){
+
               if(caps_been_set == 0){
                 caps_lock_flag = 1;
                 caps_been_set = 1;
@@ -84,8 +98,9 @@ void Keyboard_Handler() {
             }else{
                 output_key = keyboard_map[0][(unsigned char)scan_code];
             }
-
-            printf("%c", output_key); //print to screen
+            if(clear_flag != 1 && output_key != '\0'){
+              printf("%c", output_key); //print to screen
+            }
           }
     }
     sti();
