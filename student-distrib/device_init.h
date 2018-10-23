@@ -20,8 +20,6 @@
 #define KB_MAP_SIZE   60
 
 void RTC_Init();
-void Keyboard_Init();
-void Keyboard_Handler();
 void RTC_Handler();
 
 #endif
