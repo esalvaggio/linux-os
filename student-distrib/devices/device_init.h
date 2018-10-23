@@ -1,9 +1,9 @@
 #ifndef DEVICE_INIT_H
 #define DEVICE_INIT_H
 
-#include "x86_desc.h"
+#include "../x86_desc.h"
 #include "i8259.h"
-#include "lib.h"
+#include "../lib.h"
 
 
 //https://wiki.osdev.org/8259_PIC

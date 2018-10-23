@@ -1,4 +1,3 @@
-#include "lib.h"
 #include "keyboard.h"
 
  unsigned char status, output_key;
@@ -9,7 +8,7 @@
   int shift_pressed = 0;
   int shift_released = 0;
 
-unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
+static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
                                           '\0','\0', '1', '2', '3', '4', '5', '6', '7', '8',
                                           '9', '0', '-', '=', '\b','\t','q', 'w', 'e', 'r',
                                           't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n','\0',
@@ -53,7 +52,7 @@ unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
  * and then displays it on screen. It finishes by sending EOI
  */
 void Keyboard_Handler() {
-    cli();  
+    cli();
     status = inb(STATUS_PORT);
     if (status & LOW_BITMASK) { // get last bit value of status is the character to be displayed
           scan_code = inb(DATA_PORT);
