@@ -49,7 +49,7 @@ void RTC_Handler(){
     // printf("RTC Interrupt ");   /* Uncomment to test RTC */
     outb(REG_C, CMOS_REG);	     // select register C
     inb(PIC_REG);		             // just throw away contents
-    test_interrupts();          /* Uncomment to test RTC with test_interrupts */
+    // test_interrupts();          /* Uncomment to test RTC with test_interrupts */
     sti();
 
     send_eoi(RTC_IRQ); //rtc port on slave
@@ -95,11 +95,12 @@ int32_t square_root(int32_t input){
 
 int32_t RTC_open(){
 
-    return SUCCESS
+    return SUCCESS;
 }
+
 int32_t RTC_read(void* buf, int32_t nbytes){
-    (int *)buf;
-    (void)nbytes;
+    // (int *)buf;
+    // (void)nbytes;
     return SUCCESS;
 }
 int32_t RTC_close(){

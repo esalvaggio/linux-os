@@ -2,6 +2,7 @@
 
 void fs_init(uint32_t module_addr) {
     bb_startaddr = module_addr;
+    uint32_t chica = ((boot_block_t*)(bb_startaddr))->dir_count;
 }
 
 int32_t read_dentry_by_name(const uint8_t fname, dentry_t* dentry) {

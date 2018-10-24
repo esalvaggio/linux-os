@@ -32,13 +32,14 @@ typedef struct inode {
 
 
 void fs_init(uint32_t module_addr);
+// void boot_block_init(uint32_t start_addr);
+// void inode_init();
 int32_t read_dentry_by_name(const uint8_t fname, dentry_t* dentry);
 int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);
 int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length);
 
 /* Starting address of boot block */
 uint32_t bb_startaddr;
-
 
 // NEED: terminal read/write, rtc read/write, fs read/write //
 // separate file? ^^ //
