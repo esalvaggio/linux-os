@@ -1,6 +1,7 @@
 #include "tests.h"
 #include "x86_desc.h"
 #include "lib.h"
+#include "spinlock.h"
 
 #define PASS 1
 #define FAIL 0
@@ -16,7 +17,6 @@ static inline void assertion_failure(){
 	   reserved by Intel */
 	asm volatile("int $15");
 }
-
 
 /* Checkpoint 1 tests */
 
@@ -89,7 +89,18 @@ int paging_test(){
 // add more tests here
 
 /* Checkpoint 2 tests */
+int spin_test(){
+		TEST_HEADER;
 
+		unsigned char lcks = 0;
+		spin_lock(&lcks);
+		printf("Spin Lock locked!\n");
+		printf("Value of lock: %d\n", (unsigned int)lcks);
+		spin_unlock(&lcks);
+		printf("Spin Lock unlocked\n");
+		printf("Value of lock: %d\n", (unsigned int)lcks);
+		return PASS;
+}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -101,4 +112,6 @@ void launch_tests(){
 	// TEST_OUTPUT("paging_test", paging_test());
 	// TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
 	/* to test RTC, go to device_init.c */
+	TEST_OUTPUT("spinlock test", spin_test())
+
 }
