@@ -28,6 +28,11 @@ void RTC_Init(){
     outb(REG_C, CMOS_REG);	// select register C
     inb(PIC_REG);		// just throw away contents
 
+    outb(NMI_MASK | REG_A, CMOS_REG); // set index to A
+    prev = inb(PIC_REG);	// get initial value of register A
+    outb(NMI_MASK | REG_A, CMOS_REG); // reset index to A
+    outb((prev) | BOT_4, PIC_REG); // set rtc rate to 2hz
+
     enable_irq(SLAVE_IRQ); //enables slave port on master
     enable_irq(RTC_IRQ); //enables rtc port on slave
     sti();
@@ -44,8 +49,59 @@ void RTC_Handler(){
     // printf("RTC Interrupt ");   /* Uncomment to test RTC */
     outb(REG_C, CMOS_REG);	     // select register C
     inb(PIC_REG);		             // just throw away contents
-    // test_interrupts();          /* Uncomment to test RTC with test_interrupts */
+    test_interrupts();          /* Uncomment to test RTC with test_interrupts */
     sti();
 
     send_eoi(RTC_IRQ); //rtc port on slave
+}
+
+
+/* RTC_write
+ *
+ * Inputs: NBYTES is the new rate to set into the rtc.
+ *         Note: the lower the rate, the faster the frequency
+ * Outputs: 0 on success, -1 on failure (bad input)
+ * This function takes an input rate and changes the rtc timer to tick at that new
+ * rate. Interrupts are masked for the few operations with reading/writing with
+ * the RTC.
+ * Page 19 of datasheet
+*/
+int32_t RTC_write(void* buf, int32_t nbytes){
+  char prev;
+  int power = square_root(nbytes);
+  if (power < LOW_RATE || power > HI_RATE)return ERROR;
+
+  power = 16-power; //calculate the proper bits to write to rtc
+
+  cli(); ////////////////////////////////////////////////////////////////
+  outb(NMI_MASK | REG_A, CMOS_REG); // set index to A
+  prev = inb(PIC_REG);	// get initial value of register A
+  outb(NMI_MASK | REG_A, CMOS_REG); // reset index to A
+  outb((prev & TOP_4) | power, PIC_REG); // write new rate to register A -> lower 4 bits
+  sti(); //////////////////////////////////////////////////////////NOT SURE IF RIGHT
+  return SUCCESS;
+}
+
+int32_t square_root(int32_t input){
+    int32_t count = 0;
+    while (input > 2){
+        if ((float)(input / 2) != input/2.0) return ERROR;
+        input /= 2;
+        count ++;
+    }
+    count++;
+    return count;
+}
+
+int32_t RTC_open(){
+
+    return SUCCESS
+}
+int32_t RTC_read(void* buf, int32_t nbytes){
+    (int *)buf;
+    (void)nbytes;
+    return SUCCESS;
+}
+int32_t RTC_close(){
+    return SUCCESS;
 }
