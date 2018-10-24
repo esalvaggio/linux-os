@@ -6,7 +6,7 @@
 #define VIDEO       0xB8000
 #define NUM_COLS    80
 #define NUM_ROWS    25
-#define ATTRIB      0x7
+#define ATTRIB      0x1F
 
 static int screen_x;
 static int screen_y;
@@ -23,6 +23,21 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
 }
+
+/* void enable_cursor(void);
+ * Inputs: void
+ * Return Value: none
+ * Function:  */
+ void update_cursor(int x, int y)
+ {
+ 	uint16_t pos = y * NUM_COLS + x;
+  outb(0x0F,0x3D4);
+  outb((uint8_t) (pos & 0xFF),0x3D5);
+  outb(0x0E, 0x3D4);
+  outb((uint8_t) ((pos >> 8) & 0xFF),0x3D5);
+  screen_x = x;
+  screen_y = y;
+ }
 
 /* Standard printf().
  * Only supports the following format strings:
@@ -178,6 +193,7 @@ void putc(uint8_t c) {
         screen_x %= NUM_COLS;
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
+    update_cursor(screen_x,screen_y);
 }
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

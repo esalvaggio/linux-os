@@ -142,7 +142,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
     clear();
 
-    printf("Creating IDT entries...\n");
+    // printf("Creating IDT entries...\n");
     create_IDT_entry();
 
     /* Init the PIC */
@@ -150,13 +150,13 @@ void entry(unsigned long magic, unsigned long addr) {
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
-     printf("Enabling Keyboard\n");
+     // printf("Enabling Keyboard\n");
      Keyboard_Init();
 
-     printf("Enabling RTC\n");
+     // printf("Enabling RTC\n");
      RTC_Init();
 
-     printf("Enabling Paging\n");
+     // printf("Enabling Paging\n");
      Paging_Init();
 
 
@@ -164,7 +164,7 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Do not enable the following until after you have set up your
      * IDT correctly otherwise QEMU will triple fault and simple close
      * without showing you any output */
-    printf("Enabling Interrupts\n");
+    // printf("Enabling Interrupts\n");
     sti();
 
 #ifdef RUN_TESTS

@@ -69,6 +69,7 @@ void Keyboard_Handler() {
           if(scan_code == L_KEY_DOWN && ctrl_flag == 1){
               clear();
               clear_flag = 1;
+              update_cursor(0,0);
           }
           if(scan_code == SHIFT_LEFT_PRESS || scan_code == SHIFT_RIGHT_PRESS){
               shift_pressed = 1;
@@ -99,7 +100,10 @@ void Keyboard_Handler() {
                 output_key = keyboard_map[0][(unsigned char)scan_code];
             }
             if(clear_flag != 1 && output_key != '\0'){
+
               printf("%c", output_key); //print to screen
+
+
             }
           }
     }
@@ -117,4 +121,5 @@ void Keyboard_Init() {
     idt[KEYBOARD_INDEX].present = 1;
     SET_IDT_ENTRY(idt[KEYBOARD_INDEX], Keyboard_Handler);
     enable_irq(KEYBOARD_IRQ);
+    update_cursor(0,0);
 }
