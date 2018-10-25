@@ -183,14 +183,39 @@ int32_t puts(int8_t* s) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
-    if(c == '\n' || c == '\r') {
+    if(c == '\n' || c == '\r') //new line case
+     {
         screen_y++;
         screen_x = 0;
-    } else {
+      }
+    else if(c == '\b') //backspace case
+    {
+      if(screen_x == 0)
+      {
+        return; //no character to backspace, stay where we are
+      }
+      else
+      {
+        screen_x--; //move back/left one
+
+      *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' '; //fill in with space
+      *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+      }
+    }
+
+
+    else {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
+        if(screen_x == NUM_COLS) //check if at right end of screen
+        {
+          screen_y++; //move down
+        }
         screen_x %= NUM_COLS;
+
+
+
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
     update_cursor(screen_x,screen_y);
