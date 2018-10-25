@@ -8,6 +8,7 @@
 #define RTC_IRQ            8
 #define RTC_INDEX         40
 
+volatile int int_flag;
 //https://wiki.osdev.org/RTC
 
 /* RTC_INIT
@@ -17,6 +18,7 @@
  * reading from/writing to Register B
  */
 void RTC_Init(){
+    int_flag = 1;
     cli();
     char prev;
 
@@ -48,13 +50,14 @@ void RTC_Init(){
  * and then sends an EOI to alert the PIC
  */
 void RTC_Handler(){
-    // printf("RTC Interrupt ");   /* Uncomment to test RTC */
+    //printf("1");   /* Uncomment to test RTC */
     outb(REG_C, CMOS_REG);	     // select register C
     inb(PIC_REG);		             // just throw away contents
     //test_interrupts();          /* Uncomment to test RTC with test_interrupts */
     sti();
 
     send_eoi(RTC_IRQ); //rtc port on slave
+    int_flag = 1;
 }
 
 
@@ -70,7 +73,7 @@ void RTC_Handler(){
 */
 int32_t RTC_write(void* buf, int32_t nbytes){
   char prev;
-  int power = square_root(nbytes);
+  int power = power_of_two(nbytes);
   if (power < LOW_RATE || power > HI_RATE)return ERROR;
 
   power = 16-power; //calculate the proper bits to write to rtc
@@ -83,11 +86,25 @@ int32_t RTC_write(void* buf, int32_t nbytes){
   sti(); //////////////////////////////////////////////////////////NOT SURE IF RIGHT
   return SUCCESS;
 }
-
-int32_t square_root(int32_t input){
+/* square_root
+ * helper function for RTC_write.
+ * Input = integer such that we want to find n in:
+ *          2^(n) = input
+ * Outputs: -1 if not a power of 2, n otherwise
+ * Side effects: none
+ *
+*/
+int32_t power_of_two(int32_t input){
     int32_t count = 0;
     while (input > 2){
+
+        /* For example,
+         * (float)(5 / 2) = 2.00
+         * (5/2.0) = 2.50, so 5 is not a power of 2
+         *
+        */
         if ((float)(input / 2) != input/2.0) return ERROR;
+        //else, divide by 2 and keep going
         input /= 2;
         count ++;
     }
@@ -100,7 +117,10 @@ int32_t RTC_open(){
     return SUCCESS;
 }
 
+//Need to wait for interrupt
 int32_t RTC_read(void* buf, int32_t nbytes){
+    int_flag = 0;
+    //while(int_flag == 0){} -> doesn't work for some reason
     return SUCCESS;
 }
 int32_t RTC_close(){

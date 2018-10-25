@@ -102,6 +102,18 @@ int change_frequency_test(){
 	RTC_write(NULL, 4);
 	return PASS;
 }
+/* RTC read test
+ *
+ * Sees if RTC_read returns. That is it
+ * Inputs: None
+ * Outputs: PASS
+ * Side Effects: Gets stuck if RTC_read is a bad function
+ */
+int rtc_read(){
+	TEST_HEADER;
+	RTC_read(NULL, 0); // doesn't work lol
+	return PASS;
+}
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -113,5 +125,7 @@ void launch_tests(){
 	// TEST_OUTPUT("paging_test", paging_test());
 	//TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
 	/* to test RTC, go to rtc.c */
+	/* Checkpoint 2 tests */
 	//TEST_OUTPUT("Change frequency", change_frequency_test());
+	//TEST_OUTPUT("Test RTC Read", rtc_read());
 }
