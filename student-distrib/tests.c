@@ -2,7 +2,7 @@
 #include "x86_desc.h"
 #include "lib.h"
 #include "spinlock.h"
-
+#include "./devices/rtc.h"
 #define PASS 1
 #define FAIL 0
 
@@ -54,7 +54,6 @@ int idt_test(){
  */
 int divide_by_zero_test(){
 	TEST_HEADER;
-
 	int i;
 	int j = 0;
 	int result = FAIL;
@@ -89,17 +88,19 @@ int paging_test(){
 // add more tests here
 
 /* Checkpoint 2 tests */
-int spin_test(){
-		TEST_HEADER;
 
-		unsigned char lcks = 0;
-		spin_lock(&lcks);
-		printf("Spin Lock locked!\n");
-		printf("Value of lock: %d\n", (unsigned int)lcks);
-		spin_unlock(&lcks);
-		printf("Spin Lock unlocked\n");
-		printf("Value of lock: %d\n", (unsigned int)lcks);
-		return PASS;
+/* Change Frequency Test
+ *
+ * Changes the frequency of the rtc to a higher value
+ * (Right now it is set to 4 Hz, or double the usual)
+ * Inputs: None
+ * Outputs: PASS
+ * Side Effects: RTC frequency is changed
+ */
+int change_frequency_test(){
+	TEST_HEADER;
+	RTC_write(NULL, 4);
+	return PASS;
 }
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
@@ -110,8 +111,7 @@ int spin_test(){
 void launch_tests(){
 	// TEST_OUTPUT("idt_test", idt_test());
 	// TEST_OUTPUT("paging_test", paging_test());
-	// TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
-	/* to test RTC, go to device_init.c */
-	TEST_OUTPUT("spinlock test", spin_test())
-
+	//TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
+	/* to test RTC, go to rtc.c */
+	//TEST_OUTPUT("Change frequency", change_frequency_test());
 }

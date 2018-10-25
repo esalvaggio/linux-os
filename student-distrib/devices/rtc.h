@@ -1,5 +1,5 @@
-#ifndef DEVICE_INIT_H
-#define DEVICE_INIT_H
+#ifndef RTC_H
+#define RTC_H
 
 #include "../x86_desc.h"
 #include "i8259.h"

@@ -1,4 +1,6 @@
-#include "device_init.h"
+#include "rtc.h"
+
+
 
 #define STATUS_PORT     0x64
 #define DATA_PORT       0x60
@@ -49,7 +51,7 @@ void RTC_Handler(){
     // printf("RTC Interrupt ");   /* Uncomment to test RTC */
     outb(REG_C, CMOS_REG);	     // select register C
     inb(PIC_REG);		             // just throw away contents
-    // test_interrupts();          /* Uncomment to test RTC with test_interrupts */
+    //test_interrupts();          /* Uncomment to test RTC with test_interrupts */
     sti();
 
     send_eoi(RTC_IRQ); //rtc port on slave
@@ -94,13 +96,11 @@ int32_t square_root(int32_t input){
 }
 
 int32_t RTC_open(){
-
+    RTC_write(NULL, 1);
     return SUCCESS;
 }
 
 int32_t RTC_read(void* buf, int32_t nbytes){
-    // (int *)buf;
-    // (void)nbytes;
     return SUCCESS;
 }
 int32_t RTC_close(){

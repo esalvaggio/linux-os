@@ -11,7 +11,7 @@ spin_lock_loop:
                            # This will always store 1 to the lock, leaving
                            #  the previous value in the EAX register.
 
-    testl    %eax, %eax       # Test EAX with itself. Among other things, this will
+    test    %eax, %eax     # Test EAX with itself. Among other things, this will
                            #  set the processor's Zero Flag if EAX is 0.
                            # If EAX is 0, then the lock was unlocked and
                            #  we just locked it.
@@ -27,7 +27,7 @@ spin_lock_loop:
 
 .globl spin_unlock
 spin_unlock:
-    pushl %ebx
+    pushl %ebp
     movl %esp, %ebp
     movl 8(%ebp), %ebx
     #  movl %
