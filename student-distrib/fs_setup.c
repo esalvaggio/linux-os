@@ -52,9 +52,38 @@ int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length) {
     if (offset >= length)
         return 0;
 
-    int32_t bytes_read = 0;
-    while (bytes_read < length - offset) {
-        bytes_read++;
+    /* Calculate how many data blocks are used */
+    inode_t* inode_block = (inode_t*)(boot_block + inode + 1);
+    int32_t num_data_blocks = inode_block->length/BLOCK_SIZE;
+
+    /* We can only read up to the length of the file itself */
+    if (length > inode_block->length)
+        length = inode_block->length;
+
+    int32_t db_index, bytes_read = 0;
+
+    /* Read from data block */
+    for (db_index = 0; db_index < num_data_blocks; db_index++) {
+
+        /* Keeps track of index within a data_block*/
+        int32_t data_index = 0;
+        uint8_t* data_block = (uint8_t*)(boot_block + boot_block->inode_count + db_index + 1);
+
+        /* Determines when we need to go to the next data block */
+        while (bytes_read < BLOCK_SIZE) {
+            /* Read up to "length - offset" bytes */
+            if (bytes_read >= length - offset)
+                return bytes_read;
+
+            if (db_index != 0) {
+                buf[bytes_read] = data_block[data_index];
+                data_index++;
+            } else {
+                buf[bytes_read] = data_block[bytes_read + offset];
+            }
+
+            bytes_read++;
+        }
     }
 
     return bytes_read;
