@@ -8,7 +8,7 @@
 #define BOOT_BLOCK_RES_SIZE   52
 #define NUM_OF_D_ENTRIES      63
 #define NUM_OF_INODES       1023
-#define BLOCK_SIZE          1024
+#define BLOCK_SIZE          4096
 
 /* User-defined structs for file system */
 typedef struct dentry {
