@@ -1,10 +1,14 @@
 #include "tests.h"
 #include "x86_desc.h"
 #include "lib.h"
-#include "spinlock.h"
 #include "./devices/rtc.h"
+#include "./devices/i8259.h"
+
+
 #define PASS 1
 #define FAIL 0
+
+volatile int freq_flag = 0;
 
 /* format these macros as you see fit */
 #define TEST_HEADER 	\
@@ -91,27 +95,53 @@ int paging_test(){
 
 /* Change Frequency Test
  *
- * Changes the frequency of the rtc to a higher value
+ * Changes the frequency of the rtc to a few different values and keeps
+ * it there for a few seconds each.
  * (Right now it is set to 4 Hz, or double the usual)
  * Inputs: None
  * Outputs: PASS
- * Side Effects: RTC frequency is changed
+ * Side Effects: Cursor is placed somewhre on screen (ususally about halfway down.)
+ * TODO: Remove some magic numbers, add comments through function
  */
 int change_frequency_test(){
 	TEST_HEADER;
-	RTC_write(NULL, 4);
+	cli();
+	SET_IDT_ENTRY(idt[RTC_INDEX], new_rtc_idt);
+	sti();
+	int no_interrupts = 1;
+	int counter;
+	int frequencies[5] = {64, 8, 13, 128, 2};
+	for (counter = 0; counter < 5; counter++){
+		if (counter > 0) no_interrupts = (frequencies[counter-1] / 10) + 1;
+		for (;no_interrupts>0;no_interrupts--){
+			TEST_OUTPUT("Test RTC Read", rtc_read());
+			clear();
+		}
+		RTC_write(NULL, frequencies[counter]);
+	}
+	SET_IDT_ENTRY(idt[RTC_INDEX], RTC_Handler);
+	clear();
 	return PASS;
 }
+
+
+
 /* RTC read test
  *
  * Sees if RTC_read returns. That is it
  * Inputs: None
  * Outputs: PASS
- * Side Effects: Gets stuck if RTC_read is a bad function
+ * Side Effects: Gets stuck if RTC_read is a bad function,
+ *							 otherwise just prints "Interrupt!" 10 times
  */
 int rtc_read(){
 	TEST_HEADER;
-	RTC_read(NULL, 0); // doesn't work lol
+	int interrupts = 10;
+	while (interrupts > 0){
+			RTC_read(NULL, 0);
+			printf("Interrupt!\n");
+			interrupts --;
+	}
 	return PASS;
 }
 /* Checkpoint 3 tests */

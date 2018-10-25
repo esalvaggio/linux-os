@@ -9,5 +9,4 @@ int paging_test();
 int change_frequency_test();
 int rtc_read();
 
-
 #endif /* TESTS_H */
