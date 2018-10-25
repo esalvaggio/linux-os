@@ -9,7 +9,7 @@
 #include "debug.h"
 #include "tests.h"
 #include "idt_setup.h"
-#include "./devices/device_init.h"
+#include "./devices/rtc.h"
 #include "paging.h"
 #include "./devices/keyboard.h"
 
@@ -169,7 +169,7 @@ void entry(unsigned long magic, unsigned long addr) {
 
 #ifdef RUN_TESTS
     /* Run tests */
-    // launch_tests();
+    launch_tests();
 #endif
     /* Execute the first program ("shell") ... */
 

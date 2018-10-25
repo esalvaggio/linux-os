@@ -1,5 +1,5 @@
-#ifndef DEVICE_INIT_H
-#define DEVICE_INIT_H
+#ifndef RTC_H
+#define RTC_H
 
 #include "../x86_desc.h"
 #include "i8259.h"
@@ -29,6 +29,7 @@
 //Bounds
 #define LOW_RATE 1
 #define HI_RATE 10
+
 void RTC_Init();
 void RTC_Handler();
 
@@ -37,7 +38,7 @@ int32_t RTC_read(void* buf, int32_t nbytes);
 int32_t RTC_write(void* buf, int32_t nbytes);
 int32_t RTC_close();
 
-int32_t square_root(int32_t input);
+int32_t power_of_two(int32_t input);
 
 
 #endif

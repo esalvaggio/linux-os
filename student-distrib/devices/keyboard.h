@@ -1,9 +1,9 @@
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
-
 #include "../x86_desc.h"
 #include "i8259.h"
 #include "../lib.h"
+
 
 #define STATUS_PORT      0x64
 #define DATA_PORT        0x60
@@ -23,6 +23,9 @@
 
 void Keyboard_Init();
 void Keyboard_Handler();
-
+int32_t Keyboard_Write(const void * buf, int32_t nbytes);
+int32_t Keyboard_Read(const void * buf, int32_t nbytes);
+int32_t Keyboard_Open(const void * buf, int32_t nbytes);
+int32_t Keyboard_Close(const void * buf, int32_t nbytes);
 
 #endif
