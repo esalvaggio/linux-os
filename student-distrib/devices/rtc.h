@@ -30,6 +30,9 @@
 #define LOW_RATE 1
 #define HI_RATE 10
 
+#define RTC_INDEX         40
+#define RTC_IRQ            8
+
 void RTC_Init();
 void RTC_Handler();
 
@@ -38,7 +41,10 @@ int32_t RTC_read(void* buf, int32_t nbytes);
 int32_t RTC_write(void* buf, int32_t nbytes);
 int32_t RTC_close();
 
+//Helper functions
 int32_t power_of_two(int32_t input);
+void new_rtc_idt();
+
 
 
 #endif

@@ -5,10 +5,9 @@
 #define STATUS_PORT     0x64
 #define DATA_PORT       0x60
 #define SLAVE_IRQ          2
-#define RTC_IRQ            8
-#define RTC_INDEX         40
 
-volatile int int_flag;
+volatile int int_flag = 0;
+
 //https://wiki.osdev.org/RTC
 
 /* RTC_INIT
@@ -18,7 +17,7 @@ volatile int int_flag;
  * reading from/writing to Register B
  */
 void RTC_Init(){
-    int_flag = 1;
+    int_flag = 0;
     cli();
     char prev;
 
@@ -32,6 +31,7 @@ void RTC_Init(){
     outb(REG_C, CMOS_REG);	// select register C
     inb(PIC_REG);		// just throw away contents
 
+    //init to 2 hz
     outb(NMI_MASK | REG_A, CMOS_REG); // set index to A
     prev = inb(PIC_REG);	// get initial value of register A
     outb(NMI_MASK | REG_A, CMOS_REG); // reset index to A
@@ -50,21 +50,22 @@ void RTC_Init(){
  * and then sends an EOI to alert the PIC
  */
 void RTC_Handler(){
-    //printf("1");   /* Uncomment to test RTC */
+
     outb(REG_C, CMOS_REG);	     // select register C
     inb(PIC_REG);		             // just throw away contents
     //test_interrupts();          /* Uncomment to test RTC with test_interrupts */
     sti();
 
     send_eoi(RTC_IRQ); //rtc port on slave
-    int_flag = 1;
+    int_flag = 0;
 }
 
 
 /* RTC_write
  *
- * Inputs: NBYTES is the new rate to set into the rtc.
- *         Note: the lower the rate, the faster the frequency
+ * Inputs: NBYTES is the new rate to set into the rtc in Hz.
+ *         Accepatable values are:
+ *         2, 4, 8, 16, 32, 64, 128, 256, 502, 1024
  * Outputs: 0 on success, -1 on failure (bad input)
  * This function takes an input rate and changes the rtc timer to tick at that new
  * rate. Interrupts are masked for the few operations with reading/writing with
@@ -96,6 +97,7 @@ int32_t RTC_write(void* buf, int32_t nbytes){
 */
 int32_t power_of_two(int32_t input){
     int32_t count = 0;
+    if (input < 2) return ERROR;
     while (input > 2){
 
         /* For example,
@@ -103,26 +105,43 @@ int32_t power_of_two(int32_t input){
          * (5/2.0) = 2.50, so 5 is not a power of 2
          *
         */
-        if ((float)(input / 2) != input/2.0) return ERROR;
+        if (input%2) return ERROR;
         //else, divide by 2 and keep going
         input /= 2;
         count ++;
     }
-    count++;
+    count++;  //input is now 2, so we need to add one more value to count
     return count;
 }
 
 int32_t RTC_open(){
-    RTC_write(NULL, 1);
+    RTC_write(NULL, 2);
     return SUCCESS;
 }
 
 //Need to wait for interrupt
 int32_t RTC_read(void* buf, int32_t nbytes){
-    int_flag = 0;
-    //while(int_flag == 0){} -> doesn't work for some reason
+    int_flag = 1;
+    //For some stupid reason just writing while(int_flag)
+    //didn't work even with the flag being volatile. But this does..
+    int curr = int_flag;
+    while(curr){
+        curr = int_flag;
+    } //-> doesn't work for some reason
     return SUCCESS;
 }
 int32_t RTC_close(){
     return SUCCESS;
+}
+
+
+
+/*Used for test.c, included here for flag variable*/
+void new_rtc_idt(){
+    outb(REG_C, CMOS_REG);	     // select register C
+    inb(PIC_REG);		             // just throw away contents
+    test_interrupts();
+    sti();
+    send_eoi(RTC_IRQ); //rtc port on slave
+    int_flag = 0;
 }
