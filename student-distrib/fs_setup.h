@@ -11,35 +11,36 @@
 
 /* User-defined structs for file system */
 typedef struct dentry {
-    uint8_t filename[FILENAME_SIZE];
-    uint32_t filetype;
-    uint32_t inode_num;
-    uint8_t reserved[DENTRY_RESERVE_SIZE];
+    int8_t filename[FILENAME_SIZE];
+    int32_t filetype;
+    int32_t inode_num;
+    int8_t reserved[DENTRY_RESERVE_SIZE];
 } dentry_t;
 
 typedef struct boot_block {
-    uint32_t dir_count;
-    uint32_t inode_count;
-    uint32_t data_count;
-    uint8_t reserved[BOOT_BLOCK_RES_SIZE];
+    int32_t dir_count;
+    int32_t inode_count;
+    int32_t data_count;
+    int8_t reserved[BOOT_BLOCK_RES_SIZE];
     dentry_t d_entries[NUM_OF_D_ENTRIES];
 } boot_block_t;
 
 typedef struct inode {
-    uint32_t length;
-    uint32_t data_block_num[NUM_OF_INODES];
+    int32_t length;
+    int32_t data_block_num[NUM_OF_INODES];
 } inode_t;
 
 
 void fs_init(uint32_t module_addr);
-// void boot_block_init(uint32_t start_addr);
-// void inode_init();
-int32_t read_dentry_by_name(const uint8_t fname, dentry_t* dentry);
-int32_t read_dentry_by_index(uint32_t index, dentry_t* dentry);
-int32_t read_data(uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length);
+int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry);
+int32_t read_dentry_by_index(int32_t index, dentry_t* dentry);
+int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length);
+
+/* Helper function for copying filename arrays */
+void copy_string(int8_t* dest, const int8_t* src, uint32_t n);
 
 /* Starting address of boot block */
-uint32_t bb_startaddr;
+boot_block_t* boot_block;
 
 // NEED: terminal read/write, rtc read/write, fs read/write //
 // separate file? ^^ //
