@@ -144,6 +144,24 @@ int rtc_read(){
 	}
 	return PASS;
 }
+
+/* RTC read test
+ *
+ * Tests if printing the contents of various files works (text,
+ * 	executables, small, large, etc).
+ * Inputs: None
+ * Outputs: PASS
+ * Side Effects: None
+ *
+ */
+int file_system_test() {
+		int8_t* file = (int8_t*)"frame0.txt";
+		int8_t* string = file_read(file);
+		printf(string);
+		return PASS;
+}
+
+
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -158,4 +176,5 @@ void launch_tests(){
 	/* Checkpoint 2 tests */
 	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
+	file_system_test();
 }

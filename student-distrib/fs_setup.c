@@ -60,22 +60,22 @@ int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length) {
     if (length > inode_block->length)
         length = inode_block->length;
 
-    int32_t db_index, bytes_read = 0;
+    int32_t block_index, bytes_read = 0;
 
     /* Read from data block */
-    for (db_index = 0; db_index < num_data_blocks; db_index++) {
+    for (block_index = 0; block_index < num_data_blocks; block_index++) {
 
         /* Keeps track of index within a data_block*/
-        int32_t data_index = 0;
+        int32_t data_index = 0, db_index = inode_block->data_block_num[block_index];
         uint8_t* data_block = (uint8_t*)(boot_block + boot_block->inode_count + db_index + 1);
 
         /* Determines when we need to go to the next data block */
-        while (bytes_read < BLOCK_SIZE) {
+        while (bytes_read % BLOCK_SIZE != 0) {
             /* Read up to "length - offset" bytes */
             if (bytes_read >= length - offset)
                 return bytes_read;
 
-            if (db_index != 0) {
+            if (block_index != 0) {
                 buf[bytes_read] = data_block[data_index];
                 data_index++;
             } else {
@@ -87,6 +87,43 @@ int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length) {
     }
 
     return bytes_read;
+}
+
+int32_t file_open(int8_t* filename, dentry_t* dir) {
+
+    if (read_dentry_by_name(filename, dir) < 0)
+        return -1;
+
+    return 0;
+    /* Need to implement file descriptor */
+}
+
+int8_t* file_read(int8_t* filename) {
+    dentry_t* dir;
+    int8_t data_buf[50];
+    if (file_open(filename, dir) < 0)
+        return NULL;
+
+    if (read_data(dir->inode_num, 0, data_buf, 50) <= 0)
+        return NULL;
+
+    return data_buf;
+}
+
+int32_t file_write(int8_t* filename) {
+    return -1;
+}
+
+int32_t dir_open(int8_t* filename, dentry_t* dir) {
+    return -1;
+}
+
+int32_t dir_read(int8_t* filename) {
+    return -1;
+}
+
+int32_t dir_write(int8_t* filename) {
+    return -1;
 }
 
 void copy_string(int8_t* dest, const int8_t* src, uint32_t n) {
