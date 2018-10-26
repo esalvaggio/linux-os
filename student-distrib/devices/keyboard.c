@@ -14,7 +14,7 @@
   int shift_released = 0;
   int ctrl_flag = 0;
   int clear_flag = 0;
-  char old_buffer[BUFFER_LENGTH];
+  // char old_buffer[BUFFER_LENGTH];
   char new_buffer[BUFFER_LENGTH];
   int old_index;
   int new_index;
@@ -116,12 +116,13 @@ void Keyboard_Handler() {
               new_buffer[new_index] = output_key;
               new_index++;
 
+
               if(output_key == '\n')
               {
                 int x;
                 for(x = 0; x < BUFFER_LENGTH; x++)
                 {
-                  old_buffer[x] = new_buffer[x]; //copy new_buffer into old_buffer;
+                  // old_buffer[x] = new_buffer[x]; //copy new_buffer into old_buffer;
                   new_buffer[x] = ' '; //clear new_buffer
                 }
                 // Keyboard_Write(0,0);
@@ -149,7 +150,7 @@ void Keyboard_Init() {
     int x;
     for(x = 0; x < BUFFER_LENGTH; x++)
     {
-      old_buffer[x] = ' ';
+      // old_buffer[x] = ' ';
       new_buffer[x] = ' ';
     }
     old_index = 0;
@@ -157,18 +158,24 @@ void Keyboard_Init() {
     enter_flag = 0;
 }
 
-int32_t Keyboard_Open(const void * buf, int32_t nbytes)
-{
+int32_t Terminal_Open(const void * buf, int32_t nbytes){
   return SUCCESS;
 }
 
-int32_t Keyboard_Close(const void * buf, int32_t nbytes)
-{
+int32_t Terminal_Close(const void * buf, int32_t nbytes){
   return SUCCESS;
 }
 
-int32_t Keyboard_Read(const void * buf, int32_t nbytes)
-{
+int32_t Terminal_Read(const void * buf, int32_t nbytes){
+  int * returnBuffer = ((int8_t)buf);
+  //Need to check if enter key has been pressed,
+  //poll with a while loop until enter key is pressed,
+  //then put that buffer into the buffer pointer and
+  //return the number of bytes used
+
+
+
+  /*
   int32_t num_chars = 0;
   int x;
 
@@ -181,15 +188,20 @@ int32_t Keyboard_Read(const void * buf, int32_t nbytes)
     num_chars++;
   }
   return num_chars;
+  */
 }
 
 
-int32_t Keyboard_Write(const void * buf, int32_t nbytes)
-{
+int32_t Terminal_Write(const void * buf, int32_t nbytes){
+  //Need to print the passed buffer for the specified Number
+  //of bytes
+  return printf((int8_t *)buf);
+  /*
   int x;
   for(x = 0; x < buf.length; x++)
   {
     // printf("%c", old_buffer[x]);
   }
   return SUCCESS;
+  */
 }

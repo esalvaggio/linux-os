@@ -23,9 +23,9 @@
 
 void Keyboard_Init();
 void Keyboard_Handler();
-int32_t Keyboard_Write(const void * buf, int32_t nbytes);
-int32_t Keyboard_Read(const void * buf, int32_t nbytes);
-int32_t Keyboard_Open(const void * buf, int32_t nbytes);
-int32_t Keyboard_Close(const void * buf, int32_t nbytes);
+int32_t Terminal_Write(const void * buf, int32_t nbytes);
+int32_t Terminal_Read(const void * buf, int32_t nbytes);
+int32_t Terminal_Open(const void * buf, int32_t nbytes);
+int32_t Terminal_Close(const void * buf, int32_t nbytes);
 
 #endif
