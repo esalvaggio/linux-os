@@ -112,7 +112,6 @@ void Keyboard_Handler() {
             }
             if(clear_flag != 1 && output_key != '\0')
             {
-
               printf("%c", output_key); //print to screen
               new_buffer[new_index] = output_key;
               new_index++;
@@ -125,7 +124,7 @@ void Keyboard_Handler() {
                   old_buffer[x] = new_buffer[x]; //copy new_buffer into old_buffer;
                   new_buffer[x] = ' '; //clear new_buffer
                 }
-                //Keyboard_Write(old_buffer);
+                // Keyboard_Write(0,0);
               }
 
             }
@@ -188,9 +187,9 @@ int32_t Keyboard_Read(const void * buf, int32_t nbytes)
 int32_t Keyboard_Write(const void * buf, int32_t nbytes)
 {
   int x;
-  for(x = 0; x < BUFFER_LENGTH; x++)
+  for(x = 0; x < buf.length; x++)
   {
-    printf("%c", old_buffer[x]);
+    // printf("%c", old_buffer[x]);
   }
   return SUCCESS;
 }
