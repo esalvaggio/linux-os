@@ -156,11 +156,11 @@ int rtc_read(){
  *
  */
 int file_system_test() {
-		int8_t file[32] = "frame0.txt";
-		int8_t str[200];
-		file_read(file, str);
+		int8_t file[34] = "cat";
+		int8_t str[10000];
+		file_read(file, str, 5445);
 		int i;
-		for (i = 0; i < 187; i++)
+		for (i = 0; i < 5445 - 4000; i++)
 		{
 				putc(str[i]);
 		}
