@@ -4,13 +4,10 @@
 #include "./devices/rtc.h"
 #include "./devices/i8259.h"
 #include "fs_setup.h"
-#include "./devices/keyboard.h"
-
 
 
 #define PASS 1
 #define FAIL 0
-#define BUFFER_LENGTH 128
 
 volatile int freq_flag = 0;
 
@@ -158,40 +155,64 @@ int rtc_read(){
  * Side Effects: None
  *
  */
-int file_system_test() {
-		int8_t file[34] = "cat";
-		int8_t str[10000];
-		file_read(file, str, 5445);
+
+ // text
+int file_system_test_1() {
+		int8_t file[34] = "frame0.txt";
+		if (file_open(file) < 0)
+				return FAIL;
+
+		int8_t buf[10000];
+		file_read(2, buf, 187);
 		int i;
-		for (i = 0; i < 5445 - 4000; i++)
-		{
-				putc(str[i]);
+		for (i = 0; i < 187; i++) {
+				putc(buf[i]);
 		}
+
 		return PASS;
 }
 
-/*
-* Terminal Read/Write Test
-* This test reads the desired number of characters from
-* keyboard into variable b, gets its length (including the enter key)
-* and then writes the desired number of characters to string
-* Inputs: None
-* Outputs: PASS
-* Side Effects: Returns PASS by default, user should verify that expected number
-* of chars is read/written, do not assume PASS means that it works
-*/
-int terminal_test()
-{
-	TEST_HEADER;
-	char b[BUFFER_LENGTH] = ""; //buffer with space for 128 chars as specified
-	int readResult = Terminal_Read(b,128);
-	printf("%d \n", readResult);
-	Terminal_Write(b,128);
-	//int writeResult = Terminal_Write(b,5);
-		//printf("%d \n", writeResult);
-	return PASS; //text written and Terminal_Write need to be compared directly to see if correct or not
+// non-text
+int file_system_test_2() {
+		int8_t file[34] = "cat";
+		if (file_open(file) < 0)
+				return FAIL;
+
+		int8_t buf[10000];
+		file_read(2, buf, 5445);
+
+		int i;
+		for (i = 0; i < 5445; i++) {
+				putc(buf[i]);
+		}
+
+		return PASS;
 }
 
+// large text
+int file_system_test_3() {
+		int8_t file[34] = "verylargetextwithverylongname.txt";
+		if (file_open(file) < 0)
+				return FAIL;
+
+		int8_t buf[10000];
+		file_read(2, buf, 5445);
+		int i;
+		for (i = 0; i < 5445; i++) {
+				putc(buf[i]);
+		}
+
+		return PASS;
+}
+
+// dir_read
+int file_system_test_4() {
+		int8_t buf[10];
+		if (dir_read(1, buf, 32) != 0)
+				return FAIL;
+		else
+				return PASS;
+}
 
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
@@ -207,6 +228,8 @@ void launch_tests(){
 	/* Checkpoint 2 tests */
 	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
-	TEST_OUTPUT("TEST_Terminal", terminal_test());
-	//file_system_test();
+	// file_system_test_1();
+	// file_system_test_2();
+	// file_system_test_3();
+	file_system_test_4();
 }

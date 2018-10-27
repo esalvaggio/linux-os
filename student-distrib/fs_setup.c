@@ -79,21 +79,18 @@ int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length) {
     return bytes_read;
 }
 
-int32_t file_open(int8_t* filename, dentry_t* dir) {
+/* Global directory entry */
+dentry_t dir;
 
-    if (read_dentry_by_name(filename, dir) < 0)
+int32_t file_open(const int8_t* filename) {
+    if (read_dentry_by_name(filename, &dir) < 0)
         return -1;
 
     return 0;
-    /* Need to implement file descriptor */
 }
 
-int32_t file_read(int8_t* filename, int8_t* data_buf, int32_t nbytes) {
-    dentry_t dir;
-    if (file_open(filename, &dir) < 0)
-        return -1;
-
-    if (read_data(dir.inode_num, 4096, data_buf, nbytes) <= 0)
+int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
+    if (read_data(dir.inode_num, 0, buf, nbytes) <= 0)
         return -1;
 
     return 0;
@@ -103,12 +100,31 @@ int32_t file_write(int8_t* filename) {
     return -1;
 }
 
-int32_t dir_open(int8_t* filename, dentry_t* dir) {
+int32_t dir_open(const int8_t* filename) {
     return -1;
 }
 
-int32_t dir_read(int8_t* filename) {
-    return -1;
+int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
+    int32_t dir_index;
+    for (dir_index = 0; dir_index < boot_block->dir_count; dir_index++) {
+        dentry_t dir = boot_block->d_entries[dir_index];
+        if (strlen(dir.filename) > FILENAME_SIZE) {
+            printf("Filename: ");
+            int32_t char_index;
+            for (char_index = 0; char_index < FILENAME_SIZE; char_index++)
+                putc(dir.filename[char_index]);
+
+            printf(",   ");
+        } else {
+            printf("Filename: %s,   ", dir.filename);
+        }
+        printf("File type: %d,   ", dir.filetype);
+
+        inode_t* inode = (inode_t*)(boot_block + dir.inode_num + 1);
+        printf("File size: %d\n", inode->length);
+    }
+
+    return 0;
 }
 
 int32_t dir_write(int8_t* filename) {
