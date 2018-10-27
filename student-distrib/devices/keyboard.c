@@ -14,11 +14,11 @@
   int shift_released = 0;
   int ctrl_flag = 0;
   int clear_flag = 0;
-  char old_buffer[BUFFER_LENGTH];
-  char new_buffer[BUFFER_LENGTH];
-  int old_index;
-  int new_index;
-  int enter_flag;
+  char old_buffer[BUFFER_LENGTH]; //"old buffer" saves the "new buffer" when enter is pressed and the "new buffer is cleared"
+  char new_buffer[BUFFER_LENGTH]; //contains the current typing of the user
+  int old_index; //contains the index of the enter key
+  int new_index; //contains the current index to write to while typing
+  int enter_flag; //checks if enter is pressed for Terminal_Read()
 
 static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
                                           '\0','\0', '1', '2', '3', '4', '5', '6', '7', '8',
@@ -83,6 +83,7 @@ void Keyboard_Handler() {
               clear_flag = 1;
               update_cursor(0,0);
               int x;
+              new_index = 0;
               for(x = 0; x < BUFFER_LENGTH; x++)
               {
                 new_buffer[x] = '\0';
@@ -131,7 +132,7 @@ void Keyboard_Handler() {
               {
                 if(new_index == 0)
                 {
-
+                  //if buffer is empty, ignore backspace
                 }
                 else
                 {
@@ -150,8 +151,10 @@ void Keyboard_Handler() {
 
               if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
               {
-                output_key = '\n';
+                output_key = '\n'; //put enter in buffer since it is full, print buffer
                 new_buffer[new_index] = output_key;
+                printf("%c", output_key);
+                new_index++;
               }
 
 
@@ -177,8 +180,7 @@ void Keyboard_Handler() {
     send_eoi(KEYBOARD_IRQ); //keyboard port on master
 
 
-    //We need to factor in the backspace into the buffer somehow, not sure at the moment how to handle that
-}
+    }
 
 /* Keyboard_Init
  * Inputs: none
@@ -195,7 +197,7 @@ void Keyboard_Init() {
     int x;
     for(x = 0; x < BUFFER_LENGTH; x++)
     {
-      // old_buffer[x] = ' ';
+      old_buffer[x] = '\0';
       new_buffer[x] = '\0';
     }
     old_index = 0;
@@ -203,90 +205,103 @@ void Keyboard_Init() {
     enter_flag = 0;
 }
 
-int32_t Terminal_Open(const void * buf, int32_t nbytes){
+/*Terminal_Open()
+* Inputs: buf, nbytes both do nothing currently
+* Outputs: returns 0
+* This function currently does nothing but may be given functionality when system calls are implemented
+*/
+int32_t Terminal_Open(const void * buf, int32_t nbytes)
+{
+  if(buf == NULL || nbytes < 0) //invalid input
+  {
+    return FAILURE;
+  }
+
   return SUCCESS; //open always works
 }
 
-int32_t Terminal_Close(const void * buf, int32_t nbytes){
+/*Terminal_Close()
+* Inputs: buf, nbytes both do nothing currently
+* Outputs: returns 0
+* This function currently does nothing but may be given functionality when system calls are implemented
+*/
+int32_t Terminal_Close(const void * buf, int32_t nbytes)
+{
+  if(buf == NULL || nbytes < 0) //invalid input
+  {
+    return FAILURE;
+  }
+
   return SUCCESS; //close always works
 }
 
-int32_t Terminal_Read(const void * buf, int32_t nbytes){
-  //char * returnBuffer = ((char *)buf);
-  //Need to check if enter key has been pressed,
-  //poll with a while loop until enter key is pressed,
-  //then put that buffer into the buffer pointer and
-  //return the number of bytes used
-
-  /*
-  while(1)
-  {
-
-    if(isEnter == '\n')
-    {
-      returnBuffer = new_buffer;
-    }
-  }
+/*
+* Terminal_Read()
+* Inputs: buf -> buffer to read data from keyboard into, nbytes -> number of chars to read from input
+* Outputs: number of chars read from text buffer
+* This function waits for enter to be pressed, then reads the desired number of chars from the text buffer
+* into the provided buffer. It returns the number of bytes read
 */
+int32_t Terminal_Read(const void * buf, int32_t nbytes)
+{
 
-
-while(!enter_flag);
-
-
-
-  //int32_t num_chars = 0; //1 Byte = 1 Char in buffer
-  int x;
-
-  // for(x = 0; x < BUFFER_LENGTH;x++)
-  // {
-  //   num_chars++;
-  //   if(new_buffer[x] == '\n') //found end of string
-  //   {
-  //     break; //break out of loop
-  //   }
-  //
-  //   //num_chars++;
-  //   if(num_chars == nbytes) //if we have read the num bytes that we wanted, return
-  //   {
-  //     break;
-  //   }
-  // }
-
-  //for(x = 0; x < num_chars; x++)
-  for(x = 0; x < old_index;x++)
-  {
-  ((char*)buf)[x] = old_buffer[x];
-  }
-  //returnBuffer = new_buffer; //put our string buffer into given buffer
-  //buf = new_buffer;
-  //return num_chars-1; //return num characters in buffer
-  return old_index;
+if(buf == NULL || nbytes < 0) //invalid input
+{
+  return FAILURE;
 }
 
+while(!enter_flag); //wait for enter to be pressed to do anything
 
-int32_t Terminal_Write(const void * buf, int32_t nbytes){
-  //Need to print the passed buffer for the specified Number
-  //of bytes
-  //return printf((int8_t *)buf);
-  return printf((char *)buf);
-  /*
   int x;
-  for(x = 0; x < buf.length; x++)
+
+  if(nbytes < old_index) //if we want to read less a smaller portion of buffer, change to smaller amount
   {
-    // printf("%c", old_buffer[x]);
+    old_index = nbytes;
   }
-  return SUCCESS;
-  */
+  //if nbytes > old_index, keep old_index the same to avoid problems of reading more than possible
+
+  for(x = 0; x < old_index;x++) //old index = num_chars in old_buffer
+  {
+  ((char*)buf)[x] = old_buffer[x]; //copy in to given buffer
+  }
+
+
+enter_flag = 0;
+  return old_index; //return num chars read into buffer argument which is either the number of chars in the
+                    //buffer if nbytes > old_index or the number of chars desired if nbytes < old_index
 }
 
+/*
+* Terminal_Write()
+* Inputs: buf -> text buffer to print to screen, nbytes -> number of chars to print to screen
+* Outputs: number of chars printed to screen
+* This function prints the provided buffer to the screen, but prints only the provided number of
+* chars. If nbytes is bigger than the size of the buffer, the entire buffer will be printed but cut off
+* after enter
+*/
+int32_t Terminal_Write(const void * buf, int32_t nbytes)
+{
 
-// int terminal_test()
-// {
-// 	TEST_HEADER;
-// 	char b[129] = "";
-// 	int readResult = Terminal_Read(b, 128);
-// 	printf("%d \n", readResult);
-// 	Terminal_Write(b, 128);
-// 	return PASS;
-// }
-//TEST_OUTPUT("Test Terminal", terminal_test());
+  if(buf == NULL || nbytes < 0)
+  {
+    return FAILURE;
+  }
+
+  if(nbytes > BUFFER_LENGTH)
+  {
+    nbytes = old_index;
+  }
+
+  else if(nbytes > old_index)
+  {
+    nbytes = old_index;
+  }
+
+  int x = 0;
+  for(x = 0; x < nbytes; x++)
+  {
+    printf("%c", ((char *)buf)[x]);
+  }
+  return nbytes;
+
+}

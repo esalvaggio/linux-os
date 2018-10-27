@@ -192,27 +192,27 @@ void putc(uint8_t c) {
          return;
        }
     }
-    else if(c == '\b')
-    { //backspace case
-      if(screen_x == 0)
-      {
-        return; //no character to backspace, stay where we are
-      }
-      else
-      {
+    else if(c == '\b') //backspace case
+    {
+
         screen_x--; //move back/left one
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' '; //fill in with space
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
-        // new_index--;
-        // new_buffer[new_index] = '\n';
-      }
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB; //fill in color
+
     }
     else
     {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c; //fill in with character
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
-        if(screen_x == NUM_COLS) //check if at right end of screen
+
+        if(screen_x == NUM_COLS && screen_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
+        {
+          scroll();
+          return;
+        }
+
+        else if(screen_x == NUM_COLS) //check if at right end of screen
         {
           screen_y++; //move down
         }
