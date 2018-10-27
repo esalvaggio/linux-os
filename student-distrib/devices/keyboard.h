@@ -20,6 +20,8 @@
 #define CTRL_KEY_DOWN     29
 #define CTRL_KEY_UP       -99
 #define L_KEY_DOWN        38
+#define KEY_OUT_OF_BOUNDS 59
+#define ENTER_BUFFER_INDEX 127
 
 void Keyboard_Init();
 void Keyboard_Handler();

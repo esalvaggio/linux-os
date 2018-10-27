@@ -3,6 +3,7 @@
 #include "lib.h"
 #include "./devices/rtc.h"
 #include "./devices/i8259.h"
+#include "./devices/keyboard.h"
 
 
 #define PASS 1
@@ -145,21 +146,27 @@ int rtc_read(){
 	return PASS;
 }
 
-/* RTC read test
- *
- * Tests if printing the contents of various files works (text,
- * 	executables, small, large, etc).
- * Inputs: None
- * Outputs: PASS
- * Side Effects: None
- *
- */
-int file_system_test() {
-		int8_t* file = (int8_t*)"frame0.txt";
-		int8_t* string = file_read(file);
-		printf(string);
-		return PASS;
-}
+
+// int terminal_test()
+// {
+// 	TEST_HEADER;
+// 	char b[129] = "";
+// 	int readResult = Terminal_Read(b, 128);
+// 	printf("%d \n", readResult);
+// 	Terminal_Write(b, 128);
+// 	return PASS;
+// }
+
+
+
+// int file_system_test() {
+// 		int8_t* file = (int8_t*)"frame0.txt";
+// 		int8_t* string = file_read(file);
+// 		printf(string);
+// 		return PASS;
+// }
+
+
 
 
 /* Checkpoint 3 tests */
@@ -176,5 +183,6 @@ void launch_tests(){
 	/* Checkpoint 2 tests */
 	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
-	file_system_test();
+	//TEST_OUTPUT("Test Terminal", terminal_test());
+	//file_system_test();
 }

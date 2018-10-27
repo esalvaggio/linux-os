@@ -6,7 +6,7 @@
 #define VIDEO       0xB8000
 #define NUM_COLS    80
 #define NUM_ROWS    25
-#define ATTRIB      0x71
+#define ATTRIB      0x4F
 
 static int screen_x;
 static int screen_y;
@@ -192,19 +192,28 @@ void putc(uint8_t c) {
          return;
        }
     }
-    else if(c == '\b'){ //backspace case
-      if(screen_x == 0){
+    else if(c == '\b')
+    { //backspace case
+      if(screen_x == 0)
+      {
         return; //no character to backspace, stay where we are
-      }else{
+      }
+      else
+      {
         screen_x--; //move back/left one
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' '; //fill in with space
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+        // new_index--;
+        // new_buffer[new_index] = '\n';
       }
-    }else {
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
+    }
+    else
+    {
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c; //fill in with character
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
-        if(screen_x == NUM_COLS){//check if at right end of screen
+        if(screen_x == NUM_COLS) //check if at right end of screen
+        {
           screen_y++; //move down
         }
         screen_x %= NUM_COLS;
@@ -219,7 +228,7 @@ void scroll()
   int32_t i,j;
   for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
   {
-      *(uint8_t *)(video_mem + (i << 1)) =  *(uint8_t *)(video_mem + ((i+NUM_COLS) << 1));
+      *(uint8_t *)(video_mem + (i << 1)) =  *(uint8_t *)(video_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
       *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
   }
   for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){

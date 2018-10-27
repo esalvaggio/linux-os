@@ -9,5 +9,6 @@ int paging_test();
 int change_frequency_test();
 int rtc_read();
 int file_system_test();
+int terminal_test();
 
 #endif /* TESTS_H */

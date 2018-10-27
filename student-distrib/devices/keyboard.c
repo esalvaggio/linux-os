@@ -14,7 +14,7 @@
   int shift_released = 0;
   int ctrl_flag = 0;
   int clear_flag = 0;
-  // char old_buffer[BUFFER_LENGTH];
+  char old_buffer[BUFFER_LENGTH];
   char new_buffer[BUFFER_LENGTH];
   int old_index;
   int new_index;
@@ -22,38 +22,38 @@
 
 static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
                                           '\0','\0', '1', '2', '3', '4', '5', '6', '7', '8',
-                                          '9', '0', '-', '=', '\b','\t','q', 'w', 'e', 'r',
+                                          '9', '0', '-', '=', '\b','\0','q', 'w', 'e', 'r',
                                           't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n','\0',
                                           'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',
                                           '\'', '`','\0','\\', 'z', 'x', 'c', 'v', 'b', 'n',
-                                          'm', ',', '.', '/',   '\0','*','\0',' ',
+                                          'm', ',', '.', '/',   '\0','\0','\0',' ',
                                           '\0', /* Caps lock key */
                                         },
                                         { /* SHIFT PRESSED */
                                           '\0', '\0', '!', '@', '#', '$', '%', '^', '&', '*',
-                                          '(', ')', '_', '+', '\b', '\t', 'Q', 'W', 'E', 'R',
+                                          '(', ')', '_', '+', '\b', '\0', 'Q', 'W', 'E', 'R',
                                           'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n', '\0',
                                           'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':',
                                           '\"', '~', '\0','\\', 'Z', 'X', 'C', 'V', 'B', 'N',
-                                          'M', '<', '>', '?','\0','*','\0',' ',
+                                          'M', '<', '>', '?','\0','\0','\0',' ',
                                           '\0', /* Caps lock */
                                         },
                                         { /* CAPS LOCK PRESSED */
                                           '\0','\0', '1', '2', '3', '4', '5', '6', '7', '8',
-                                          '9', '0', '-', '=', '\b','\t','Q', 'W', 'E', 'R',
+                                          '9', '0', '-', '=', '\b','\0','Q', 'W', 'E', 'R',
                                           'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\n','\0',
                                           'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';',
                                           '\'', '`','\0','\\', 'Z', 'X', 'C', 'V', 'B', 'N',
-                                          'M', ',', '.', '/',   '\0','*','\0',' ',
+                                          'M', ',', '.', '/',   '\0','\0','\0',' ',
                                           '\0', /* Caps lock key */
                                         },
                                         { /* CAPS LOCK AND SHIFT PRESSED */
                                           '\0', '\0', '!', '@', '#', '$', '%', '^', '&', '*',
-                                          '(', ')', '_', '+', '\b', '\t', 'q', 'w', 'e', 'r',
+                                          '(', ')', '_', '+', '\b', '\0', 'q', 'w', 'e', 'r',
                                           't', 'y', 'u', 'i', 'o', 'p', '{', '}', '\n', '\0',
                                           'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ':',
                                           '\"', '~', '\0','\\', 'z', 'x', 'c', 'v', 'b', 'n',
-                                          'm', '<', '>', '?','\0','*','\0',' ',
+                                          'm', '<', '>', '?','\0','\0','\0',' ',
                                           '\0', /* Caps lock */
                                         }
                                     };
@@ -71,6 +71,7 @@ void Keyboard_Handler() {
     if (status & LOW_BITMASK) { // get last bit value of status is the character to be displayed
           scan_code = inb(DATA_PORT);
           // printf("%d",scan_code);
+
           if(scan_code == CTRL_KEY_DOWN){
                 ctrl_flag = 1;
           }
@@ -81,6 +82,11 @@ void Keyboard_Handler() {
               clear();
               clear_flag = 1;
               update_cursor(0,0);
+              int x;
+              for(x = 0; x < BUFFER_LENGTH; x++)
+              {
+                new_buffer[x] = '\0';
+              }
           }
           if(scan_code == SHIFT_LEFT_PRESS || scan_code == SHIFT_RIGHT_PRESS){
               shift_pressed = 1;
@@ -88,6 +94,13 @@ void Keyboard_Handler() {
           if(scan_code == SHIFT_LEFT_RELEASE || scan_code == SHIFT_RIGHT_RELEASE){
             shift_pressed = 0;
           }
+
+          if(scan_code >= KEY_OUT_OF_BOUNDS)
+          {
+            //scan_code = 1; //escape key, if key is outside of used scope, set to escape key to print null
+            clear_flag = 1; //ignore bad key
+          }
+
           if (scan_code >= 0) {
             //checks if caps lock is set
             if(scan_code == CAPS_LOCK){
@@ -110,22 +123,51 @@ void Keyboard_Handler() {
             }else{
                 output_key = keyboard_map[0][(unsigned char)scan_code];
             }
-            if(clear_flag != 1 && output_key != '\0')
+            if(clear_flag != 1 && output_key != '\0') //print key if clear flag is not set and key to print is not NULL
             {
+              //Terminal_Write(new_buffer, BUFFER_LENGTH);
+
+              if(output_key == '\b')
+              {
+                if(new_index == 0)
+                {
+
+                }
+                else
+                {
+                new_index--;
+                new_buffer[new_index] = '\0';
+                printf("%c", output_key);
+                }
+              }
+
+              else
+              {
               printf("%c", output_key); //print to screen
               new_buffer[new_index] = output_key;
               new_index++;
+              }
 
-
-              if(output_key == '\n')
+              if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
               {
+                output_key = '\n';
+                new_buffer[new_index] = output_key;
+              }
+
+
+              if(output_key == '\n') //key is enter, end of buffer
+              {
+                enter_flag = 1;
                 int x;
+
+                old_index = new_index;
+                new_index = 0;
                 for(x = 0; x < BUFFER_LENGTH; x++)
                 {
-                  // old_buffer[x] = new_buffer[x]; //copy new_buffer into old_buffer;
-                  new_buffer[x] = ' '; //clear new_buffer
+                  old_buffer[x] = new_buffer[x];
+                  new_buffer[x] = '\0'; //clear new_buffer
                 }
-                // Keyboard_Write(0,0);
+
               }
 
             }
@@ -133,6 +175,9 @@ void Keyboard_Handler() {
     }
     sti();
     send_eoi(KEYBOARD_IRQ); //keyboard port on master
+
+
+    //We need to factor in the backspace into the buffer somehow, not sure at the moment how to handle that
 }
 
 /* Keyboard_Init
@@ -151,7 +196,7 @@ void Keyboard_Init() {
     for(x = 0; x < BUFFER_LENGTH; x++)
     {
       // old_buffer[x] = ' ';
-      new_buffer[x] = ' ';
+      new_buffer[x] = '\0';
     }
     old_index = 0;
     new_index = 0;
@@ -159,43 +204,71 @@ void Keyboard_Init() {
 }
 
 int32_t Terminal_Open(const void * buf, int32_t nbytes){
-  return SUCCESS;
+  return SUCCESS; //open always works
 }
 
 int32_t Terminal_Close(const void * buf, int32_t nbytes){
-  return SUCCESS;
+  return SUCCESS; //close always works
 }
 
 int32_t Terminal_Read(const void * buf, int32_t nbytes){
-  int * returnBuffer = ((int8_t)buf);
+  //char * returnBuffer = ((char *)buf);
   //Need to check if enter key has been pressed,
   //poll with a while loop until enter key is pressed,
   //then put that buffer into the buffer pointer and
   //return the number of bytes used
 
-
-
   /*
-  int32_t num_chars = 0;
+  while(1)
+  {
+
+    if(isEnter == '\n')
+    {
+      returnBuffer = new_buffer;
+    }
+  }
+*/
+
+
+while(!enter_flag);
+
+
+
+  //int32_t num_chars = 0; //1 Byte = 1 Char in buffer
   int x;
 
-  for(x = 0; x < BUFFER_LENGTH;x++)
+  // for(x = 0; x < BUFFER_LENGTH;x++)
+  // {
+  //   num_chars++;
+  //   if(new_buffer[x] == '\n') //found end of string
+  //   {
+  //     break; //break out of loop
+  //   }
+  //
+  //   //num_chars++;
+  //   if(num_chars == nbytes) //if we have read the num bytes that we wanted, return
+  //   {
+  //     break;
+  //   }
+  // }
+
+  //for(x = 0; x < num_chars; x++)
+  for(x = 0; x < old_index;x++)
   {
-    if(old_buffer[x] == '\n')
-    {
-      break;
-    }
-    num_chars++;
+  ((char*)buf)[x] = old_buffer[x];
   }
-  return num_chars;
-  */
+  //returnBuffer = new_buffer; //put our string buffer into given buffer
+  //buf = new_buffer;
+  //return num_chars-1; //return num characters in buffer
+  return old_index;
 }
 
 
 int32_t Terminal_Write(const void * buf, int32_t nbytes){
   //Need to print the passed buffer for the specified Number
   //of bytes
-  return printf((int8_t *)buf);
+  //return printf((int8_t *)buf);
+  return printf((char *)buf);
   /*
   int x;
   for(x = 0; x < buf.length; x++)
@@ -205,3 +278,15 @@ int32_t Terminal_Write(const void * buf, int32_t nbytes){
   return SUCCESS;
   */
 }
+
+
+// int terminal_test()
+// {
+// 	TEST_HEADER;
+// 	char b[129] = "";
+// 	int readResult = Terminal_Read(b, 128);
+// 	printf("%d \n", readResult);
+// 	Terminal_Write(b, 128);
+// 	return PASS;
+// }
+//TEST_OUTPUT("Test Terminal", terminal_test());
