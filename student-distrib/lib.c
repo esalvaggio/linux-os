@@ -222,7 +222,13 @@ void putc(uint8_t c) {
     update_cursor(screen_x,screen_y);
 }
 
-
+/*
+* scroll()
+* INPUT: none
+* OUTPUT: none
+* This function is a helper function for putc to enable scrolling on the terminal. This is completed by
+* putting the memory in the row below into the row above
+*/
 void scroll()
 {
   int32_t i,j;

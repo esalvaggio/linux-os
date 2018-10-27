@@ -4,10 +4,13 @@
 #include "./devices/rtc.h"
 #include "./devices/i8259.h"
 #include "fs_setup.h"
+#include "./devices/keyboard.h"
+
 
 
 #define PASS 1
 #define FAIL 0
+#define BUFFER_LENGTH 128
 
 volatile int freq_flag = 0;
 
@@ -167,6 +170,28 @@ int file_system_test() {
 		return PASS;
 }
 
+/*
+* Terminal Read/Write Test
+* This test reads the desired number of characters from
+* keyboard into variable b, gets its length (including the enter key)
+* and then writes the desired number of characters to string
+* Inputs: None
+* Outputs: PASS
+* Side Effects: Returns PASS by default, user should verify that expected number
+* of chars is read/written, do not assume PASS means that it works
+*/
+int terminal_test()
+{
+	TEST_HEADER;
+	char b[BUFFER_LENGTH] = ""; //buffer with space for 128 chars as specified
+	int readResult = Terminal_Read(b,128);
+	printf("%d \n", readResult);
+	Terminal_Write(b,128);
+	//int writeResult = Terminal_Write(b,5);
+		//printf("%d \n", writeResult);
+	return PASS; //text written and Terminal_Write need to be compared directly to see if correct or not
+}
+
 
 /* Checkpoint 3 tests */
 /* Checkpoint 4 tests */
@@ -182,5 +207,6 @@ void launch_tests(){
 	/* Checkpoint 2 tests */
 	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
-	file_system_test();
+	TEST_OUTPUT("TEST_Terminal", terminal_test());
+	//file_system_test();
 }
