@@ -3,12 +3,11 @@
 #include "lib.h"
 #include "./devices/rtc.h"
 #include "./devices/i8259.h"
-#include "./devices/keyboard.h"
+#include "fs_setup.h"
 
 
 #define PASS 1
 #define FAIL 0
-#define BUFFER_LENGTH 128
 
 volatile int freq_flag = 0;
 
@@ -147,38 +146,26 @@ int rtc_read(){
 	return PASS;
 }
 
-/*
-* Terminal Read/Write Test
-* This test reads the desired number of characters from
-* keyboard into variable b, gets its length (including the enter key)
-* and then writes the desired number of characters to string
-* Inputs: None
-* Outputs: PASS
-* Side Effects: Returns PASS by default, user should verify that expected number
-* of chars is read/written, do not assume PASS means that it works
-*/
-int terminal_test()
-{
-	TEST_HEADER;
-	char b[BUFFER_LENGTH] = ""; //buffer with space for 128 chars as specified
-	int readResult = Terminal_Read(b,128);
-	printf("%d \n", readResult);
-	Terminal_Write(b,128);
-	//int writeResult = Terminal_Write(b,5);
-		//printf("%d \n", writeResult);
-	return PASS; //text written and Terminal_Write need to be compared directly to see if correct or not
-}
-
-
-
+/* RTC read test
+ *
+ * Tests if printing the contents of various files works (text,
+ * 	executables, small, large, etc).
+ * Inputs: None
+ * Outputs: PASS
+ * Side Effects: None
+ *
+ */
 int file_system_test() {
-		int8_t* file = (int8_t*)"frame0.txt";
-		int8_t* string = file_read(file);
-		printf(string);
+		int8_t file[32] = "frame0.txt";
+		int8_t str[200];
+		file_read(file, str);
+		int i;
+		for (i = 0; i < 187; i++)
+		{
+				putc(str[i]);
+		}
 		return PASS;
 }
-
-
 
 
 /* Checkpoint 3 tests */
@@ -195,6 +182,5 @@ void launch_tests(){
 	/* Checkpoint 2 tests */
 	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
-	TEST_OUTPUT("Test Terminal", terminal_test());
-	//file_system_test();
+	file_system_test();
 }
