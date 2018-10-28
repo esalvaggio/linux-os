@@ -25,10 +25,12 @@ void clear(void) {
     }
 }
 
-/* void enable_cursor(void);
- * Inputs: void
- * Return Value: none
- * Function:  */
+/*
+* update_cursor()
+* Inputs: x/y ->x/y coordinates to print cursor to
+* Outputs: none
+* This function outputs the cursor to the screen at the desired x/y coordinates
+*/
  void update_cursor(int x, int y)
  {
  	uint16_t pos = y * NUM_COLS + x;
@@ -36,7 +38,7 @@ void clear(void) {
   outb((uint8_t) (pos & 0xFF),0x3D5);
   outb(0x0E, 0x3D4);
   outb((uint8_t) ((pos >> 8) & 0xFF),0x3D5);
-  screen_x = x;
+  screen_x = x; //modify global coordinates to provided coordinates
   screen_y = y;
  }
 
@@ -188,7 +190,7 @@ void putc(uint8_t c) {
        screen_y++;
        screen_x = 0;
       if(screen_y == NUM_ROWS){
-         scroll();
+         scroll(); //scroll if enter is pressed on the last row
          return;
        }
     }
@@ -208,7 +210,7 @@ void putc(uint8_t c) {
 
         if(screen_x == NUM_COLS && screen_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
         {
-          scroll();
+          scroll(); //call helper function
           return;
         }
 

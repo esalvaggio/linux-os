@@ -29,5 +29,6 @@ int32_t Terminal_Write(const void * buf, int32_t nbytes);
 int32_t Terminal_Read(const void * buf, int32_t nbytes);
 int32_t Terminal_Open(const void * buf, int32_t nbytes);
 int32_t Terminal_Close(const void * buf, int32_t nbytes);
+void print_to_screen(char output_key);
 
 #endif

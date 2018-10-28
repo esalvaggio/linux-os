@@ -116,62 +116,17 @@ void Keyboard_Handler() {
             }
 
             if(caps_lock_flag == 1 && shift_pressed == 0){
-              output_key = keyboard_map[2][(unsigned char)scan_code];
+              output_key = keyboard_map[2][(unsigned char)scan_code]; //CAPS, not shift
             }else if(caps_lock_flag == 0 && shift_pressed == 1){
-              output_key = keyboard_map[1][(unsigned char)scan_code];
+              output_key = keyboard_map[1][(unsigned char)scan_code]; //Shift, not CAPS
             }else if(caps_lock_flag == 1 && shift_pressed == 1){
-              output_key = keyboard_map[3][(unsigned char)scan_code];
+              output_key = keyboard_map[3][(unsigned char)scan_code]; //Shift and CAPS
             }else{
-                output_key = keyboard_map[0][(unsigned char)scan_code];
+                output_key = keyboard_map[0][(unsigned char)scan_code]; //No shift, no CAPS
             }
             if(clear_flag != 1 && output_key != '\0') //print key if clear flag is not set and key to print is not NULL
             {
-              //Terminal_Write(new_buffer, BUFFER_LENGTH);
-
-              if(output_key == '\b')
-              {
-                if(new_index == 0)
-                {
-                  //if buffer is empty, ignore backspace
-                }
-                else
-                {
-                new_index--;
-                new_buffer[new_index] = '\0';
-                printf("%c", output_key);
-                }
-              }
-
-              else
-              {
-              printf("%c", output_key); //print to screen
-              new_buffer[new_index] = output_key;
-              new_index++;
-              }
-
-              if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
-              {
-                output_key = '\n'; //put enter in buffer since it is full, print buffer
-                new_buffer[new_index] = output_key;
-                printf("%c", output_key);
-                new_index++;
-              }
-
-
-              if(output_key == '\n') //key is enter, end of buffer
-              {
-                enter_flag = 1;
-                int x;
-
-                old_index = new_index;
-                new_index = 0;
-                for(x = 0; x < BUFFER_LENGTH; x++)
-                {
-                  old_buffer[x] = new_buffer[x];
-                  new_buffer[x] = '\0'; //clear new_buffer
-                }
-
-              }
+              print_to_screen(output_key); //call helper function to handle all the cases to print char
 
             }
           }
@@ -199,6 +154,7 @@ void Keyboard_Init() {
     {
       old_buffer[x] = '\0';
       new_buffer[x] = '\0';
+
     }
     old_index = 0;
     new_index = 0;
@@ -282,26 +238,81 @@ enter_flag = 0;
 int32_t Terminal_Write(const void * buf, int32_t nbytes)
 {
 
-  if(buf == NULL || nbytes < 0)
+  if(buf == NULL || nbytes < 0) //invalid input
   {
     return FAILURE;
   }
-
-  if(nbytes > BUFFER_LENGTH)
+  if(nbytes > BUFFER_LENGTH) //if they try to read more than in the buffer, set the num bytes to where enter is
   {
     nbytes = old_index;
   }
 
-  else if(nbytes > old_index)
+  else if(nbytes > old_index) //if they try to read more than in the buffer, set the num bytes to where enter is
   {
     nbytes = old_index;
   }
 
-  int x = 0;
+  int x;
   for(x = 0; x < nbytes; x++)
   {
-    printf("%c", ((char *)buf)[x]);
+    printf("%c", ((char *)buf)[x]); //print
   }
-  return nbytes;
+  return nbytes; //return number of bytes printed
 
+}
+
+
+/*
+* print_to_screen()
+* Inputs: output_key, key to print to screen based on keyboard input
+* Outputs: none
+* This function is a helper function for the handler in order to cut down its size.
+* This function has 3 main cases: backspace, enter, 'normal' chars which are detailed below
+*/
+void print_to_screen(char output_key)
+{
+  if(output_key == '\b') //backspace case
+  {
+    if(new_index == 0)
+    {
+      //if buffer is empty, ignore backspace
+    }
+    else
+    {
+    new_index--; //move back an index and fill with NULL
+    new_buffer[new_index] = '\0';
+    printf("%c", output_key);
+    }
+  }
+
+  else //any other chars besides backspace
+  {
+  printf("%c", output_key); //print to screen
+  new_buffer[new_index] = output_key; //fill in buffer
+  new_index++;
+  }
+
+  if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
+  {
+    output_key = '\n'; //put enter in buffer since it is full, print buffer
+    new_buffer[new_index] = output_key;
+    printf("%c", output_key);
+    new_index++;
+  }
+
+
+  if(output_key == '\n') //key is enter, end of buffer
+  {
+    enter_flag = 1; //set enter flag to alert Terminal_Read that enter has been pressed
+    int x;
+
+    old_index = new_index; //save location of enter key
+    new_index = 0;
+    for(x = 0; x < BUFFER_LENGTH; x++) //copy over new_buffer into old_buffer and clear new_buffer
+    {
+      old_buffer[x] = new_buffer[x];
+      new_buffer[x] = '\0';
+    }
+
+  }
 }
