@@ -87,7 +87,7 @@ int32_t RTC_write(void* buf, int32_t nbytes){
   sti(); //////////////////////////////////////////////////////////NOT SURE IF RIGHT
   return SUCCESS;
 }
-/* square_root
+/* power_of_two
  * helper function for RTC_write.
  * Input = integer such that we want to find n in:
  *          2^(n) = input
@@ -100,11 +100,6 @@ int32_t power_of_two(int32_t input){
     if (input < 2) return ERROR;
     while (input > 2){
 
-        /* For example,
-         * (float)(5 / 2) = 2.00
-         * (5/2.0) = 2.50, so 5 is not a power of 2
-         *
-        */
         if (input%2) return ERROR;
         //else, divide by 2 and keep going
         input /= 2;
@@ -113,13 +108,19 @@ int32_t power_of_two(int32_t input){
     count++;  //input is now 2, so we need to add one more value to count
     return count;
 }
-
+/* RTC open
+ * Sets the rtc frequency at 2Hz
+ *
+*/
 int32_t RTC_open(){
     RTC_write(NULL, 2);
     return SUCCESS;
 }
 
-//Need to wait for interrupt
+/* RTC read
+ * Waits for an interrupt, then returns 0
+ *
+*/
 int32_t RTC_read(void* buf, int32_t nbytes){
     int_flag = 1;
     //For some stupid reason just writing while(int_flag)
@@ -130,6 +131,9 @@ int32_t RTC_read(void* buf, int32_t nbytes){
     } //-> doesn't work for some reason
     return SUCCESS;
 }
+/* RTC close
+ * Returns 0, does nothing else
+*/
 int32_t RTC_close(){
     return SUCCESS;
 }

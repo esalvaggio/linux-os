@@ -37,6 +37,7 @@ int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry);
 int32_t read_dentry_by_index(int32_t index, dentry_t* dentry);
 int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length);
 int32_t file_open(const int8_t* filename);
+int32_t file_close(int32_t fd);
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t file_write(int8_t* filename);
 int32_t dir_open(const int8_t* filename);

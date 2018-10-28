@@ -89,6 +89,10 @@ int32_t file_open(const int8_t* filename) {
     return 0;
 }
 
+int32_t file_close(int32_t fd ){
+  return -1;
+}
+
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
     if (read_data(dir.inode_num, 0, buf, nbytes) <= 0)
         return -1;

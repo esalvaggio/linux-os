@@ -73,7 +73,7 @@ void Keyboard_Handler() {
           // printf("%d",scan_code);
 
           if(scan_code == CTRL_KEY_DOWN){
-                ctrl_flag = 1;
+              ctrl_flag = 1;
           }
           if(scan_code == CTRL_KEY_UP){
             ctrl_flag = 0;
