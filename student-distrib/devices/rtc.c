@@ -110,7 +110,7 @@ int32_t power_of_two(int32_t input){
 }
 /* RTC open
  * Sets the rtc frequency at 2Hz
- *
+ * Side effects: changes rtc frequency to 2Hz
 */
 int32_t RTC_open(){
     RTC_write(NULL, 2);
@@ -119,7 +119,7 @@ int32_t RTC_open(){
 
 /* RTC read
  * Waits for an interrupt, then returns 0
- *
+ * Inputs: buf, nbytes don't do anything
 */
 int32_t RTC_read(void* buf, int32_t nbytes){
     int_flag = 1;
@@ -140,7 +140,13 @@ int32_t RTC_close(){
 
 
 
-/*Used for test.c, included here for flag variable*/
+/*Used for test.c, included here for flag variable
+ * new_rtc_idt
+ * Essentially a carbon copy of the original rtc handler, 
+ * but with the test_interrupts line inluded.
+ * WHEN SET AS HANDLER:
+ *  Screen will flash every interrupt, very annoying if trying to do anything
+*/
 void new_rtc_idt(){
     outb(REG_C, CMOS_REG);	     // select register C
     inb(PIC_REG);		             // just throw away contents
