@@ -5,12 +5,14 @@
 #include "multiboot.h"
 #include "x86_desc.h"
 #include "lib.h"
-#include "i8259.h"
+#include "./devices/i8259.h"
 #include "debug.h"
 #include "tests.h"
 #include "idt_setup.h"
-#include "device_init.h"
+#include "./devices/rtc.h"
 #include "paging.h"
+#include "./devices/keyboard.h"
+#include "fs_setup.h"
 
 #define RUN_TESTS
 
@@ -51,10 +53,13 @@ void entry(unsigned long magic, unsigned long addr) {
     if (CHECK_FLAG(mbi->flags, 2))
         printf("cmdline = %s\n", (char *)mbi->cmdline);
 
+    uint32_t boot_start_addr;
+
     if (CHECK_FLAG(mbi->flags, 3)) {
         int mod_count = 0;
         int i;
         module_t* mod = (module_t*)mbi->mods_addr;
+        boot_start_addr = mod->mod_start;
         while (mod_count < mbi->mods_count) {
             printf("Module %d loaded at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_start);
             printf("Module %d ends at address: 0x%#x\n", mod_count, (unsigned int)mod->mod_end);
@@ -141,7 +146,8 @@ void entry(unsigned long magic, unsigned long addr) {
 
     clear();
 
-    printf("Creating IDT entries...\n");
+    fs_init(boot_start_addr);
+    // printf("Creating IDT entries...\n");
     create_IDT_entry();
 
     /* Init the PIC */
@@ -149,13 +155,13 @@ void entry(unsigned long magic, unsigned long addr) {
 
     /* Initialize devices, memory, filesystem, enable device interrupts on the
      * PIC, any other initialization stuff... */
-     printf("Enabling Keyboard\n");
+     // printf("Enabling Keyboard\n");
      Keyboard_Init();
 
-     printf("Enabling RTC\n");
+     // printf("Enabling RTC\n");
      RTC_Init();
 
-     printf("Enabling Paging\n");
+     // printf("Enabling Paging\n");
      Paging_Init();
 
 
@@ -163,7 +169,7 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Do not enable the following until after you have set up your
      * IDT correctly otherwise QEMU will triple fault and simple close
      * without showing you any output */
-    printf("Enabling Interrupts\n");
+    // printf("Enabling Interrupts\n");
     sti();
 
 #ifdef RUN_TESTS

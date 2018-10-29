@@ -6,11 +6,12 @@
 #define VIDEO       0xB8000
 #define NUM_COLS    80
 #define NUM_ROWS    25
-#define ATTRIB      0x7
+#define ATTRIB      0x4E
 
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
+void scroll();
 
 /* void clear(void);
  * Inputs: void
@@ -23,6 +24,23 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
 }
+
+/*
+* update_cursor()
+* Inputs: x/y ->x/y coordinates to print cursor to
+* Outputs: none
+* This function outputs the cursor to the screen at the desired x/y coordinates
+*/
+ void update_cursor(int x, int y)
+ {
+ 	uint16_t pos = y * NUM_COLS + x;
+  outb(0x0F,0x3D4);
+  outb((uint8_t) (pos & 0xFF),0x3D5);
+  outb(0x0E, 0x3D4);
+  outb((uint8_t) ((pos >> 8) & 0xFF),0x3D5);
+  screen_x = x; //modify global coordinates to provided coordinates
+  screen_y = y;
+ }
 
 /* Standard printf().
  * Only supports the following format strings:
@@ -168,17 +186,69 @@ int32_t puts(int8_t* s) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
-    if(c == '\n' || c == '\r') {
-        screen_y++;
-        screen_x = 0;
-    } else {
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c;
+    if(c == '\n' || c == '\r'){ //new line case
+       screen_y++;
+       screen_x = 0;
+      if(screen_y == NUM_ROWS){
+         scroll(); //scroll if enter is pressed on the last row
+         return;
+       }
+    }
+    else if(c == '\b') //backspace case
+    {
+
+        screen_x--; //move back/left one
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' '; //fill in with space
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB; //fill in color
+
+    }
+    else
+    {
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c; //fill in with character
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
+
+        if(screen_x == NUM_COLS && screen_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
+        {
+          scroll(); //call helper function
+          return;
+        }
+
+        else if(screen_x == NUM_COLS) //check if at right end of screen
+        {
+          screen_y++; //move down
+        }
         screen_x %= NUM_COLS;
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
+    update_cursor(screen_x,screen_y);
 }
+
+/*
+* scroll()
+* INPUT: none
+* OUTPUT: none
+* This function is a helper function for putc to enable scrolling on the terminal. This is completed by
+* putting the memory in the row below into the row above
+*/
+void scroll()
+{
+  int32_t i,j;
+  for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
+  {
+      *(uint8_t *)(video_mem + (i << 1)) =  *(uint8_t *)(video_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
+      *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+  }
+  for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
+    *(uint8_t *)(video_mem + (j << 1)) = ' ';
+    *(uint8_t *)(video_mem + (j << 1) + 1) = ATTRIB;
+  }
+  screen_x = 0;
+  screen_y = NUM_ROWS-1;
+  update_cursor(screen_x,screen_y);
+}
+
+
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);
  * Inputs: uint32_t value = number to convert

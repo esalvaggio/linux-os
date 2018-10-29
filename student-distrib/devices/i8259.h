@@ -2,12 +2,12 @@
  * controller
  * vim:ts=4 noexpandtab
  */
-
+ #include "../types.h"
+ #include "../lib.h"
 
 #ifndef _I8259_H
 #define _I8259_H
 
-#include "types.h"
 
 /* Ports that each PIC sits on */
 #define MASTER_8259_PORT    0x20
