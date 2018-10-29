@@ -172,20 +172,17 @@ int terminal_test()
 	return PASS; //text written and Terminal_Write need to be compared directly to see if correct or not
 }
 
-
-
-/* RTC read test
+/* file_system_test_1
  *
- * Tests if printing the contents of various files works (text,
- * 	executables, small, large, etc).
+ * Tests if file open and file read works with a simple
+ * 	text file.
  * Inputs: None
- * Outputs: PASS
+ * Outputs: PASS on success, FAIL if the file can't open
  * Side Effects: None
  *
  */
-
- // text
 int file_system_test_1() {
+		TEST_HEADER;
 		int8_t file[34] = "frame0.txt";
 		if (file_open(file) < 0)
 				return FAIL;
@@ -200,8 +197,18 @@ int file_system_test_1() {
 		return PASS;
 }
 
-// non-text
+/* file_system_test_2
+ *
+ * Tests if file open and file read works with a non-
+ * 	text file. It prints the beginning and the end of
+ *	the file.
+ * Inputs: None
+ * Outputs: PASS on success, FAIL if the file can't open
+ * Side Effects: None
+ *
+ */
 int file_system_test_2() {
+		TEST_HEADER;
 		int8_t file[34] = "cat";
 		if (file_open(file) < 0)
 				return FAIL;
@@ -209,34 +216,69 @@ int file_system_test_2() {
 		int8_t buf[10000];
 		file_read(2, buf, 5445);
 
+		printf("Beginning of non-text file:\n\n");
 		int i;
-		for (i = 0; i < 5445; i++) {
+		for (i = 0; i < 500; i++) {
 				putc(buf[i]);
 		}
+
+		printf("\n\nEnd of non-text file:\n\n");
+		for (i = 5000; i < 5445; i++) {
+				putc(buf[i]);
+		}
+
+		putc('\n');
 
 		return PASS;
 }
 
-// large text
+/* file_system_test_3
+ *
+ * Tests if file open and file read works with a large
+ * 	text file. It prints the beginning and the end of
+ *	the file.
+ * Inputs: None
+ * Outputs: PASS on success, FAIL if the file can't open
+ * Side Effects: None
+ *
+ */
 int file_system_test_3() {
+		TEST_HEADER;
 		int8_t file[34] = "verylargetextwithverylongname.txt";
 		if (file_open(file) < 0)
 				return FAIL;
 
 		int8_t buf[10000];
-		file_read(2, buf, 5445);
+		file_read(2, buf, 5277);
+
+		printf("Beginning of non-text file:\n\n");
 		int i;
-		for (i = 0; i < 5445; i++) {
+		for (i = 0; i < 300; i++) {
+				putc(buf[i]);
+		}
+
+		printf("\n\nEnd of non-text file:\n\n");
+		for (i = 4700; i < 5277; i++) {
 				putc(buf[i]);
 		}
 
 		return PASS;
 }
 
-// dir_read
+/* file_system_test_4
+ *
+ * Tests if dir_open and dir_read works. Since we only
+ *	have one directory, it just prints out the files in
+ *	the file system.
+ * Inputs: None
+ * Outputs: PASS on success, FAIL if the file can't open
+ * Side Effects: None
+ *
+ */
 int file_system_test_4() {
-		int8_t buf[10];
-		if (dir_read(1, buf, 32) != 0)
+		TEST_HEADER;
+		char buf[boot_block->dir_count];
+		if (dir_read(1, &buf, 32) != 0)
 				return FAIL;
 		else
 				return PASS;
@@ -257,8 +299,8 @@ void launch_tests(){
 	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
 	//TEST_OUTPUT("TEST_Terminal", terminal_test());
-	//file_system_test_1();
-	//file_system_test_2();
-	//file_system_test_3();
-	//file_system_test_4();
+	// TEST_OUTPUT("File System: Text File test", file_system_test_1());
+	// TEST_OUTPUT("File System:	Non-Text File Test", file_system_test_2());
+	// TEST_OUTPUT("File System: Large File Test", file_system_test_3());
+	// TEST_OUTPUT("File System: Directory Test", file_system_test_4());
 }

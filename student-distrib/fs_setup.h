@@ -41,16 +41,12 @@ int32_t file_close(int32_t fd);
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t file_write(int8_t* filename);
 int32_t dir_open(const int8_t* filename);
+int32_t dir_close(int32_t fd);
 int32_t dir_read(int32_t fd, void* buf, int32_t nbytes);
 int32_t dir_write(int8_t* filename);
-
 /* Helper function for copying filename arrays */
 void copy_string(int8_t* dest, const int8_t* src, uint32_t n);
-
 /* Starting address of boot block */
 boot_block_t* boot_block;
-
-// NEED: terminal read/write, rtc read/write, fs read/write //
-// separate file? ^^ //
 
 #endif
