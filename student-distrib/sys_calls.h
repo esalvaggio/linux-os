@@ -44,7 +44,7 @@ typedef struct pcb {
 } pcb_t;
 
 /* Global PCB file array */
-pcb_t pcb;
+pcb_t* pcb;
 
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
 fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};

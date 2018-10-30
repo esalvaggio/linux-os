@@ -8,7 +8,7 @@ void pcb_init() {
     int fa_index;
     for (fa_index = 0; fa_index < FILENAME_SIZE; fa_index++) {
       /* Initialize each location in file array to unused */
-      pcb.file_array[fa_index].flags = 0;
+      pcb->file_array[fa_index].flags = 0;
     }
 }
 
@@ -23,7 +23,19 @@ int32_t execute(const uint8_t* command) {
 }
 
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
-    return -1;
+    /* Check for invalid index */
+    if (fd < 0 || fd >= FILE_ARRAY_SIZE)
+        return -1;
+
+    /* Check file position */
+    fd_t file_desc = pcb->file_array[fd];
+    inode_t* inode = (inode_t*)(boot_block + file_desc.inode + 1);
+    /* Return 0 if we've reached the end of the file */
+    if (file_desc.file_pos >= inode->length)
+        return 0;
+
+    /* Make the correct read call for file type */
+    return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
@@ -38,7 +50,7 @@ int32_t open(const uint8_t* filename) {
     int fa_index;
     for (fa_index = 2; fa_index < FILENAME_SIZE; fa_index++) {
         /* Find the next open location in file array */
-        fd_t file_desc = pcb.file_array[fa_index];
+        fd_t file_desc = pcb->file_array[fa_index];
         if (file_desc.flags != 1) {
             /* Inode is 0 for non-data files */
             if (dentry.filetype == 2) {
@@ -71,9 +83,6 @@ int32_t open(const uint8_t* filename) {
                     file_desc.file_ops_table_ptr = file_funcs;
                     break;
             }
-
-
-
 
             return 0;
         }
