@@ -284,7 +284,15 @@ void print_to_screen(char output_key)
     printf("%c", output_key);
     }
   }
-
+  else if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
+  {
+    if(output_key == '\n')
+    {
+      new_buffer[new_index] = output_key;
+      printf("%c", output_key);
+      new_index++;
+    }
+  }
   else //any other chars besides backspace
   {
   printf("%c", output_key); //print to screen
@@ -292,13 +300,6 @@ void print_to_screen(char output_key)
   new_index++;
   }
 
-  if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
-  {
-    output_key = '\n'; //put enter in buffer since it is full, print buffer
-    new_buffer[new_index] = output_key;
-    printf("%c", output_key);
-    new_index++;
-  }
 
 
   if(output_key == '\n') //key is enter, end of buffer
