@@ -10,6 +10,7 @@
 #define PASS 1
 #define FAIL 0
 
+#define AMT_FREQ 13
 
 volatile int freq_flag = 0;
 
@@ -108,22 +109,44 @@ int paging_test(){
  */
 int change_frequency_test(){
 	TEST_HEADER;
-	cli();
-	SET_IDT_ENTRY(idt[RTC_INDEX], new_rtc_idt);
-	sti();
-	int no_interrupts = 1;
+
+	int no_interrupts;
 	int counter;
-	int frequencies[5] = {64, 8, 13, 128, 2};
-	for (counter = 0; counter < 5; counter++){
-		if (counter > 0) no_interrupts = (frequencies[counter-1] / 10) + 1;
-		for (;no_interrupts>0;no_interrupts--){
-			TEST_OUTPUT("Test RTC Read", rtc_read());
-			clear();
+	int timer;
+	int frequencies[AMT_FREQ] = {64, 8, 13, 128, 2, 1024, 12, 16, 512, 4, 128, 2048, 32};
+
+	for (counter = 0; counter < AMT_FREQ; counter++){
+
+		RTC_open();
+		printf("Testing Frequency: %d", frequencies[counter]);
+		for (timer = 0; timer < 4; timer++){
+				RTC_read(NULL,0);
+				printf(".");
+
 		}
-		RTC_write(NULL, frequencies[counter]);
-	}
-	SET_IDT_ENTRY(idt[RTC_INDEX], RTC_Handler);
+
+
+		if (RTC_write(NULL, frequencies[counter]) == 0){ //returns success
+			no_interrupts = frequencies[counter] * 2;
+			for (;no_interrupts>=0;no_interrupts--){
+				RTC_read(NULL,0);
+				clear();
+				update_cursor(0,0);
+				printf("interrupt: %d", no_interrupts);
+			}
+		}else{
+				clear();
+				update_cursor(0,0);
+				printf("Bad Input!");
+				for (timer = 0; timer < 4; timer ++){
+						RTC_read(NULL, 0);
+				}
+		}
+
 	clear();
+	update_cursor(0,0);
+	}
+	RTC_open();
 	return PASS;
 }
 
@@ -295,12 +318,17 @@ void launch_tests(){
 	// TEST_OUTPUT("paging_test", paging_test());
 	//TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
 	/* to test RTC, go to rtc.c */
+
 	/* Checkpoint 2 tests */
-	//TEST_OUTPUT("Change frequency", change_frequency_test());
+	TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
 	//TEST_OUTPUT("TEST_Terminal", terminal_test());
 	// TEST_OUTPUT("File System: Text File test", file_system_test_1());
 	// TEST_OUTPUT("File System:	Non-Text File Test", file_system_test_2());
 	// TEST_OUTPUT("File System: Large File Test", file_system_test_3());
 	// TEST_OUTPUT("File System: Directory Test", file_system_test_4());
+
+	/*Checkpoint 2 regade tests*/
+
+	/* Checkpoint 3 tests */
 }
