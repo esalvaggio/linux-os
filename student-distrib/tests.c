@@ -115,21 +115,21 @@ int change_frequency_test(){
 	int timer;
 	int frequencies[AMT_FREQ] = {64, 8, 13, 128, 2, 1024, 12, 16, 512, 4, 128, 2048, 32};
 
+	uint8_t fname[3] = "RTC";
 	for (counter = 0; counter < AMT_FREQ; counter++){
-
-		RTC_open();
+		RTC_open(fname);
 		printf("Testing Frequency: %d", frequencies[counter]);
 		for (timer = 0; timer < 4; timer++){
-				RTC_read(NULL,0);
+				RTC_read(0, NULL,0);
 				printf(".");
 
 		}
 
 
-		if (RTC_write(NULL, frequencies[counter]) == 0){ //returns success
+		if (RTC_write(0, NULL, frequencies[counter]) == 0){ //returns success
 			no_interrupts = frequencies[counter] * 2;
 			for (;no_interrupts>=0;no_interrupts--){
-				RTC_read(NULL,0);
+				RTC_read(0, NULL,0);
 				clear();
 				update_cursor(0,0);
 				printf("interrupt: %d", no_interrupts);
@@ -139,14 +139,14 @@ int change_frequency_test(){
 				update_cursor(0,0);
 				printf("Bad Input!");
 				for (timer = 0; timer < 4; timer ++){
-						RTC_read(NULL, 0);
+						RTC_read(0, NULL, 0);
 				}
 		}
 
 	clear();
 	update_cursor(0,0);
 	}
-	RTC_open();
+	RTC_open(fname);
 	return PASS;
 }
 
@@ -164,7 +164,7 @@ int rtc_read(){
 	TEST_HEADER;
 	int interrupts = 10;
 	while (interrupts > 0){
-			RTC_read(NULL, 0);
+			RTC_read(0, NULL, 0);
 			printf("Interrupt!\n");
 			interrupts --;
 	}
@@ -206,7 +206,7 @@ int terminal_test()
  */
 int file_system_test_1() {
 		TEST_HEADER;
-		int8_t file[34] = "frame0.txt";
+		uint8_t file[34] = "frame0.txt";
 		if (file_open(file) < 0)
 				return FAIL;
 
@@ -232,7 +232,7 @@ int file_system_test_1() {
  */
 int file_system_test_2() {
 		TEST_HEADER;
-		int8_t file[34] = "cat";
+		uint8_t file[34] = "cat";
 		if (file_open(file) < 0)
 				return FAIL;
 
@@ -267,7 +267,7 @@ int file_system_test_2() {
  */
 int file_system_test_3() {
 		TEST_HEADER;
-		int8_t file[34] = "verylargetextwithverylongname.txt";
+		uint8_t file[34] = "verylargetextwithverylongname.txt";
 		if (file_open(file) < 0)
 				return FAIL;
 

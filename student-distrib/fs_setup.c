@@ -26,7 +26,7 @@ void fs_init(uint32_t module_addr) {
  * Side Effects: Calls read_dentry_by_index
  *
  */
-int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry) {
+int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry) {
 
     int32_t entry_index;
     dentry_t dir_entry;
@@ -35,7 +35,7 @@ int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry) {
         /* Obtain the directory entry */
         dir_entry = boot_block->d_entries[entry_index];
         /* Check if the filenames match */
-        if (!strncmp(fname, dir_entry.filename, FILENAME_SIZE)) {
+        if (!strncmp((int8_t*)fname, (int8_t*)dir_entry.filename, FILENAME_SIZE)) {
             /* Call the function below to set values */
             return read_dentry_by_index(entry_index, dentry);
         }
@@ -141,7 +141,7 @@ dentry_t dir;
  * Side Effects: None
  *
  */
-int32_t file_open(const int8_t* filename) {
+int32_t file_open(const uint8_t* filename) {
     if (read_dentry_by_name(filename, &dir) < 0)
         return -1;
 
@@ -198,7 +198,7 @@ int32_t file_write(int32_t fd, const void* buf, int32_t nbytes) {
  * Side Effects: None
  *
  */
-int32_t dir_open(const int8_t* filename) {
+int32_t dir_open(const uint8_t* filename) {
     if (read_dentry_by_name(filename, &dir) < 0)
         return -1;
 
@@ -235,7 +235,7 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
     for (dir_index = 0; dir_index < boot_block->dir_count; dir_index++) {
         dentry_t dir = boot_block->d_entries[dir_index];
 
-        if (strlen(dir.filename) > FILENAME_SIZE) {
+        if (strlen((int8_t*)dir.filename) > FILENAME_SIZE) {
             printf("Filename: ");
             int32_t char_index;
             for (char_index = 0; char_index < FILENAME_SIZE; char_index++)
@@ -278,7 +278,7 @@ int32_t dir_write(int32_t fd, const void* buf, int32_t nbytes) {
  * Side Effects: None
  *
  */
-void copy_string(int8_t* dest, const int8_t* src, uint32_t n) {
+void copy_string(uint8_t* dest, const uint8_t* src, uint32_t n) {
     int32_t i = 0;
     while (src[i] != '\0' && i < n) {
         dest[i] = src[i];

@@ -23,10 +23,10 @@ void pcb_init();
 
 /* File Operations Table Pointer */
 typedef struct fotp {
-    int32_t (*open)(const uint8_t* filename);
-    int32_t (*close)(int32_t fd);
-    int32_t (*read)(int32_t fd, void* buf, int32_t nbytes);
-    int32_t (*write)(int32_t fd, const void* buf, int32_t nbytes);
+    int32_t (*open)(const uint8_t*);
+    int32_t (*close)(int32_t);
+    int32_t (*read)(int32_t, void*, int32_t);
+    int32_t (*write)(int32_t, const void*, int32_t);
 } fotp_t;
 
 /* File Descriptor */
@@ -47,8 +47,7 @@ typedef struct pcb {
 pcb_t pcb;
 
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
-// fotp_t rtc_funcs = {RTC_read, RTC_write, RTC_open, RTC_close};
+fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
-// fotp_t file_funcs = {file_read, file_write, file_open, file_close};
 
 #endif

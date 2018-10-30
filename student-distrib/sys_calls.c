@@ -12,6 +12,8 @@ void pcb_init() {
     }
 }
 
+// void set
+
 int32_t halt(uint8_t status) {
     return -1;
 }
@@ -36,30 +38,37 @@ int32_t open(const uint8_t* filename) {
     int fa_index;
     for (fa_index = 2; fa_index < FILENAME_SIZE; fa_index++) {
         /* Find the next open location in file array */
-        fd_t fd = pcb.file_array[fa_index];
-        if (fd.flags != 1) {
+        fd_t file_desc = pcb.file_array[fa_index];
+        if (file_desc.flags != 1) {
             /* Inode is 0 for non-data files */
             if (dentry.filetype == 2) {
-                fd.inode = dentry.inode_num;
+                file_desc.inode = dentry.inode_num;
             } else {
-                fd.inode = 0;
+                file_desc.inode = 0;
             }
             /* Gets updated every time read is called */
-            fd.file_pos = 0;
-            fd.flags = 1;
+            file_desc.file_pos = 0;
+            file_desc.flags = 1;
 
+            int32_t fd;
 
             switch (dentry.filetype)
             {
                 case RTC_FILETYPE:
                     /* set the frequency of the RTC */
                     // call rtc open and set fotp
+                    fd = RTC_open(dentry.filename);
+                    file_desc.file_ops_table_ptr = rtc_funcs;
                     break;
                 case DIR_FILETYPE:
                     // dir_open and set ftop
+                    fd = dir_open(dentry.filename);
+                    file_desc.file_ops_table_ptr = dir_funcs;
                     break;
                 case REG_FILETYPE:
                     // file_open and set fotp
+                    fd = file_open(dentry.filename);
+                    file_desc.file_ops_table_ptr = file_funcs;
                     break;
             }
 

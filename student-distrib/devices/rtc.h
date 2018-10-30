@@ -36,10 +36,10 @@
 void RTC_Init();
 void RTC_Handler();
 
-int32_t RTC_open();
-int32_t RTC_read(void* buf, int32_t nbytes);
-int32_t RTC_write(void* buf, int32_t nbytes);
-int32_t RTC_close();
+int32_t RTC_open(const uint8_t* filename);
+int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes);
+int32_t RTC_write(int32_t fd, const void* buf, int32_t nbytes);
+int32_t RTC_close(int32_t fd);
 
 //Helper functions
 int32_t power_of_two(int32_t input);
