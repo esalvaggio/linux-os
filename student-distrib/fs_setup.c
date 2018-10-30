@@ -168,15 +168,12 @@ int32_t file_close(int32_t fd) {
  *    fd - file descriptor
  *    buf - buffer that stores the data read
  *    nbytes - number of bytes to be read
- * Outputs: 0 on success, -1 on fail
+ * Outputs: the number of bytes read, -1 if fails
  * Side Effects: None
  *
  */
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
-    if (read_data(dir.inode_num, 0, buf, nbytes) <= 0)
-        return -1;
-
-    return 0;
+    return read_data(dir.inode_num, 0, buf, nbytes);
 }
 
 /* file_write
@@ -188,7 +185,7 @@ int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
  * Side Effects: None
  *
  */
-int32_t file_write(int8_t* filename) {
+int32_t file_write(int32_t fd, const void* buf, int32_t nbytes) {
     return -1;
 }
 
@@ -266,7 +263,7 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
  * Side Effects: None
  *
  */
-int32_t dir_write(int8_t* filename) {
+int32_t dir_write(int32_t fd, const void* buf, int32_t nbytes) {
     return -1;
 }
 

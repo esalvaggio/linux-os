@@ -39,11 +39,11 @@ int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length);
 int32_t file_open(const int8_t* filename);
 int32_t file_close(int32_t fd);
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes);
-int32_t file_write(int8_t* filename);
+int32_t file_write(int32_t fd, const void* buf, int32_t nbytes);
 int32_t dir_open(const int8_t* filename);
 int32_t dir_close(int32_t fd);
 int32_t dir_read(int32_t fd, void* buf, int32_t nbytes);
-int32_t dir_write(int8_t* filename);
+int32_t dir_write(int32_t fd, const void* buf, int32_t nbytes);
 /* Helper function for copying filename arrays */
 void copy_string(int8_t* dest, const int8_t* src, uint32_t n);
 /* Starting address of boot block */
