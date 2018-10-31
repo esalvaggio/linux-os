@@ -1,14 +1,19 @@
 #include "sys_calls.h"
-#include "fs_setup.h"
-#include "devices/rtc.h"
-#include "devices/keyboard.h"
-#define RTC_FILETYPE     0
-#define DIR_FILETYPE     1
-#define REG_FILETYPE     2
+
+#define RTC_FILETYPE      0
+#define DIR_FILETYPE      1
+#define REG_FILETYPE      2
+#define DELETE_CHAR    0x7F
+#define E_CHAR         0x45
+#define L_CHAR         0x4C
+#define F_CHAR         0x46
+
 
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
 fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
+int8_t executable_check[4] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
+// first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
 
 void pcb_init() {
     int fa_index;
@@ -28,17 +33,59 @@ int32_t execute(const uint8_t* command) {
 
 
     /* Instructions
-      1. Parse
+      1. Parse  --- WORKS
           - command: ["filename" + " " + "string of args"]
+    */
+    int32_t command_idx;
+    int32_t command_length = strlen((int8_t*)command);
+    uint8_t* fname;
+    uint8_t* args;
+    for (command_idx = 0; command_idx < command_length; command_idx++) {
 
+        if (command[command_idx] == ' ') {
+            /* Get filename */
+            uint8_t buf[FILENAME_SIZE];
+            copy_string(buf, command, command_idx);
+            buf[command_idx] = '\0';
+            fname = buf;
+            printf("%s ", fname);
 
-      2. Executable Check
+            /* Get arguments */
+            int32_t arg_buf_len = command_length - (command_idx + 1);
+            uint8_t arg_buf[arg_buf_len];
+            copy_string(arg_buf, &command[command_idx + 1], arg_buf_len);
+            arg_buf[arg_buf_len] = '\0';
+            args = arg_buf;
+            printf("%s\n", args);
+            break;
+        }
+    }
+
+    /*  2. Executable Check   --- WORKS
           - check if file is an executable
             -> read dentry
             -> get data of file, check for "\dELF"
             -> 40 bytes of file is a header
               -> first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
               -> entry point bytes 24-27
+    */
+    dentry_t dentry;
+    if (read_dentry_by_name(fname, &dentry) < 0)
+          return -1;
+
+
+
+
+    int8_t ex_buf[4];
+    if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0)
+        return -1;
+
+    for (command_idx = 0; command_idx < 4; command_idx++) {
+        if (ex_buf[command_idx] != executable_check[command_idx])
+            return -1;
+    }
+
+    /*
       3. Paging
           - each process gets its own 4 MB page
       4. User-level program loader
