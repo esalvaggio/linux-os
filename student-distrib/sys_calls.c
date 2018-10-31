@@ -19,6 +19,50 @@ int32_t halt(uint8_t status) {
 }
 
 int32_t execute(const uint8_t* command) {
+
+    
+    /* Instructions
+      1. Parse
+          - command: ["filename" + " " + "string of args"]
+
+
+      2. Executable Check
+          - check if file is an executable
+            -> read dentry
+            -> get data of file, check for "\dELF"
+            -> 40 bytes of file is a header
+              -> first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
+              -> entry point bytes 24-27
+      3. Paging
+          - each process gets its own 4 MB page
+      4. User-level program loader
+          - call to read_data
+          - comes after paging!
+          - all user level programs will be loaded in the page starting at 128MB
+          - virtual memory => 128 MB - 132 MB
+              -> gets mapped to physical memory
+              -> physical memory starts at 8 MB + (process number)*4 MB
+          - flush TLB
+              -> reload a control register (CR3?)
+              -> after initializing a new page
+      5. create PCB
+          - args should be put into PCB
+          - allocate space for PCB in memory
+          - total kernel stack goes from 4MB - 8MB
+            -> kernel stack for process 1 => 8MB -> (8MB - 8KB)
+                -> very bottom of kernel stack
+            -> kernel stack for process 2 => (8MB - 8KB) -> 8KB
+                -> above previous process kernel stack
+            -> ... so on
+      6. context switch
+          - change priviledge level
+          - IRET (read in ISA manual)
+          - push artificial IRET onto the stack
+            -> IRET pops 32B from the stack, so use PUSHL
+            -> push the new (user) ESP and segment selector
+          - should not be able to leave shell!!
+            -> first user-level program called in kernel.c
+    */
     return -1;
 }
 
@@ -84,7 +128,7 @@ int32_t open(const uint8_t* filename) {
                     break;
             }
 
-            return 0;
+            return fa_index;
         }
     }
     /* There are no open locations in the file array */

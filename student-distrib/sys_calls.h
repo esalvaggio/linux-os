@@ -40,6 +40,7 @@ typedef struct fd {
 /* Process Control Block */
 typedef struct pcb {
     fd_t file_array[FILE_ARRAY_SIZE];
+    int32_t mem_addr_start;
     // add more good stuff
 } pcb_t;
 
