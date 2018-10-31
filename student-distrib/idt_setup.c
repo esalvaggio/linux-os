@@ -179,5 +179,6 @@ void create_IDT_entry()
   SET_IDT_ENTRY(idt[MACHINE_CHECK_IDT], machine_check);
   SET_IDT_ENTRY(idt[SIMD_EXCEPTION_IDT], simd_exception);
   SET_IDT_ENTRY(idt[SYSTEM_CALL_IDT], system_call_handler);
-  SET_IDT_ENTRY(idt[SLAVE_HANDLER_IDT], slave_handler);
+  /*
+  SET_IDT_ENTRY(idt[SLAVE_HANDLER_IDT], slave_handler);*/
 }

@@ -1,8 +1,14 @@
 #include "sys_calls.h"
-
+#include "fs_setup.h"
+#include "devices/rtc.h"
+#include "devices/keyboard.h"
 #define RTC_FILETYPE     0
 #define DIR_FILETYPE     1
 #define REG_FILETYPE     2
+
+fotp_t file_funcs = {file_open, file_close, file_read, file_write};
+fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
+fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 
 void pcb_init() {
     int fa_index;
@@ -20,7 +26,7 @@ int32_t halt(uint8_t status) {
 
 int32_t execute(const uint8_t* command) {
 
-    
+
     /* Instructions
       1. Parse
           - command: ["filename" + " " + "string of args"]

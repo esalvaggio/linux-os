@@ -320,7 +320,7 @@ void launch_tests(){
 	/* to test RTC, go to rtc.c */
 
 	/* Checkpoint 2 tests */
-	TEST_OUTPUT("Change frequency", change_frequency_test());
+	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
 	//TEST_OUTPUT("TEST_Terminal", terminal_test());
 	// TEST_OUTPUT("File System: Text File test", file_system_test_1());
