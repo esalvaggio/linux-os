@@ -92,7 +92,11 @@ int32_t open(const uint8_t* filename) {
 }
 
 int32_t close(int32_t fd) {
-    return -1;
+    if (fd < 2 || fd >= FILE_ARRAY_SIZE)
+        return -1;
+
+    pcb->file_array[fd].flags = 0;
+    return 0;
 }
 
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
