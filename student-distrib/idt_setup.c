@@ -1,4 +1,4 @@
-
+#include "sys_call_handler.h"
 #include "lib.h"
 #include "idt_setup.h"
 
@@ -102,16 +102,13 @@ void simd_exception() {
   printf("simd floating point exeption\n");
   while(1);
 }
-
+/*
 void system_call_handler() {
   printf("system call handler\n");
   while(1);
 }
+*/
 
-void slave_handler(){
-  printf("Slave handler\n");
-  while(1);
-}
 
 /* create_IDT_entry
  *
@@ -147,8 +144,7 @@ void create_IDT_entry()
     }
 
     /* set the slave pic to be used (index 34) */
-    if (x == SLAVE_HANDLER_IDT)
-      idt[x].present = 1;
+
 
     /* initialize the system call handler to be used (index 127) */
     if (x == SYSTEM_CALL_IDT) {
@@ -178,7 +174,6 @@ void create_IDT_entry()
   SET_IDT_ENTRY(idt[ALIGN_FAULT_IDT_IDT], aligment_check_fault);
   SET_IDT_ENTRY(idt[MACHINE_CHECK_IDT], machine_check);
   SET_IDT_ENTRY(idt[SIMD_EXCEPTION_IDT], simd_exception);
-  SET_IDT_ENTRY(idt[SYSTEM_CALL_IDT], system_call_handler);
-  /*
-  SET_IDT_ENTRY(idt[SLAVE_HANDLER_IDT], slave_handler);*/
+  SET_IDT_ENTRY(idt[SYSTEM_CALL_IDT], sys_call_handler);
+
 }

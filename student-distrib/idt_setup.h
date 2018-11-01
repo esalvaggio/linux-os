@@ -25,7 +25,6 @@
 #define MACHINE_CHECK_IDT      18
 #define SIMD_EXCEPTION_IDT     19
 #define INTEL_DEFINED_IDX      32
-#define SLAVE_HANDLER_IDT      34
 #define SYSTEM_CALL_IDT       127
 
 /* IDT initializer function */
@@ -52,6 +51,5 @@ void floating_point_err();
 void aligment_check_fault();
 void machine_check();
 void simd_exception();
-void slave_handler();
 
 #endif
