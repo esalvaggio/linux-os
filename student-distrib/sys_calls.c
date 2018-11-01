@@ -1,4 +1,9 @@
 #include "sys_calls.h"
+#include "fs_setup.h"
+#include "devices/rtc.h"
+#include "devices/keyboard.h"
+#include "paging.h"
+
 
 #define RTC_FILETYPE      0
 #define DIR_FILETYPE      1
@@ -87,7 +92,10 @@ int32_t execute(const uint8_t* command) {
 
     /*
       3. Paging
-          - each process gets its own 4 MB page
+          - each process gets its own 4 MB page */
+          page_dir_init(0x08000000, 0x0800000); //8mb phys addr user level shell
+          page_dir_init(0x08000000, 0x0C00000); //12mb stuff
+/*
       4. User-level program loader
           - call to read_data
           - comes after paging!

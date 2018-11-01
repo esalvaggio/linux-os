@@ -2,7 +2,7 @@
 #include "paging.h"
 
 
-/* Paging Initialization   
+/* Paging Initialization
  *
  * Creates a page directory and page table, initializes both to 0.
  * Creates 2 elements in page directory, one in 4KB and one in 4MB.
@@ -21,7 +21,7 @@ void Paging_Init(){
   }
   page_directory[0] = ((uint32_t) page_table) + RE_WR + USER + PRESENT_BIT; //4kB
   page_directory[1] = KERNEL_LOAD_ADDR + PAGE_SIZE + RE_WR + PRESENT_BIT; //Kernel 4MB address
-  page_table[SHIFTED_VGA_ADDR] = VIDEO + RE_WR + USER + PRESENT_BIT; //VGA 4kB address
+  page_table[SHIFTED_VGA_ADDR] = VIDEO + RE_WR + USER + PRESENT_BIT; //VGA 4kB
 
   //Turn on paging, not yet initialized tables
   //input page directory in here
@@ -42,4 +42,19 @@ void Paging_Init(){
                 : "eax"    // clobbered register
                 );
 
+}
+
+void page_dir_init(uint32_t virtual_addr, uint32_t phys_addr){
+  uint32_t index = virtual_addr / FOURMB;
+  page_directory[index] = phys_addr + PAGE_SIZE + RE_WR + PRESENT_BIT;
+
+  //flush tlb
+  asm volatile ("                           \n\
+                    movl	%%eax,%%cr3       \n\
+                    movl	%%cr3,%%eax       \n\
+                  "
+                :             // (no) ouput
+                :             // page_directory as input. r means go through a regster
+                : "eax"       // clobbered register
+                );
 }

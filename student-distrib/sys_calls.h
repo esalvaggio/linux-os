@@ -2,12 +2,10 @@
 #define _SYS_CALLS_H
 
 #include "types.h"
-#include "lib.h"
-#include "fs_setup.h"
-#include "devices/rtc.h"
-#include "devices/keyboard.h"
 
 #define FILE_ARRAY_SIZE     8
+
+#ifndef ASM
 
 int32_t halt(uint8_t status);
 int32_t execute(const uint8_t* command);
@@ -48,4 +46,5 @@ typedef struct pcb {
 /* Global PCB file array */
 pcb_t* pcb;
 
+#endif
 #endif
