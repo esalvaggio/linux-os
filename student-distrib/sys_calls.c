@@ -5,19 +5,24 @@
 #include "paging.h"
 
 
-#define RTC_FILETYPE      0
-#define DIR_FILETYPE      1
-#define REG_FILETYPE      2
-#define DELETE_CHAR    0x7F
-#define E_CHAR         0x45
-#define L_CHAR         0x4C
-#define F_CHAR         0x46
+#define RTC_FILETYPE        0
+#define DIR_FILETYPE        1
+#define REG_FILETYPE        2
+#define EXEC_CHECK_CHARS    4
+#define DELETE_CHAR      0x7F
+#define E_CHAR           0x45
+#define L_CHAR           0x4C
+#define F_CHAR           0x46
+#define ADDR_8MB     0x800000
+#define ADDR_4MB     0x400000
+#define ADDR_8KB     0x002000
+#define ADDR_4KB     0x001000
 
 
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
 fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
-int8_t executable_check[4] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
+int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
 
 void pcb_init() {
@@ -28,9 +33,36 @@ void pcb_init() {
     }
 }
 
+pcb_t* create_new_pcb() {
+    int i;
+    for (i = 0; i < NUM_OF_PROCESSES; i++) {
+        if (pcb_processes[i].in_use == 0) {
+          /* Starts at address: 8MB - (process_num * 8KB) */
+          pcb_t* new_pcb = (pcb_t*)(ADDR_8MB - (i+1)*ADDR_8KB);
+          return new_pcb;
+        }
+    }
+
+    return NULL;
+}
+
 // void set
 
 int32_t halt(uint8_t status) {
+
+    /*
+      1. Restore parent data
+        - parent process number (most important)
+          -> look in PCB for this
+      2. Restore parent paging
+        - similar to how we set up paging in execute()
+        - flush TLB!
+      3. Clear all file descriptors
+        - calling close()
+      4. Jump back to parent process
+
+    */
+
     return -1;
 }
 
@@ -78,9 +110,6 @@ int32_t execute(const uint8_t* command) {
     if (read_dentry_by_name(fname, &dentry) < 0)
           return -1;
 
-
-
-
     int8_t ex_buf[4];
     if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0)
         return -1;
@@ -90,11 +119,20 @@ int32_t execute(const uint8_t* command) {
             return -1;
     }
 
+    /* get entry point from bytes 24-27 */
+    if (read_data(dentry.inode_num, 24, ex_buf, 27) < 0)
+        return -1;
+
+    /* Adress of first instruction */
+    uint32_t* entry_point = (uint32_t*)ex_buf;
+
     /*
       3. Paging
           - each process gets its own 4 MB page */
           page_dir_init(0x08000000, 0x0800000); //8mb phys addr user level shell
           page_dir_init(0x08000000, 0x0C00000); //12mb stuff
+
+
 /*
       4. User-level program loader
           - call to read_data
@@ -106,18 +144,32 @@ int32_t execute(const uint8_t* command) {
           - flush TLB
               -> reload a control register (CR3?)
               -> after initializing a new page
+
+    /*
       5. create PCB
           - args should be put into PCB
           - allocate space for PCB in memory
           - total kernel stack goes from 4MB - 8MB
             -> kernel stack for process 1 => 8MB -> (8MB - 8KB)
                 -> very bottom of kernel stack
-            -> kernel stack for process 2 => (8MB - 8KB) -> 8KB
+            -> kernel stack for process 2 => (8MB - 8KB) -> (8MB - 8KB) - 8KB
                 -> above previous process kernel stack
             -> ... so on
+    */
+    pcb_t* pcb_new = create_new_pcb();
+    if (pcb_new == NULL)
+        return -1;
+
+    pcb_new->args = args;
+    /*
       6. context switch
           - change priviledge level
           - IRET (read in ISA manual)
+            -> user DS
+            -> esp
+            -> eflag
+            -> cs
+            -> etp
           - push artificial IRET onto the stack
             -> IRET pops 32B from the stack, so use PUSHL
             -> push the new (user) ESP and segment selector

@@ -4,6 +4,7 @@
 #include "types.h"
 
 #define FILE_ARRAY_SIZE     8
+#define NUM_OF_PROCESSES    6
 
 #ifndef ASM
 
@@ -17,8 +18,6 @@ int32_t getargs(uint8_t* buf, int32_t nbytes);
 int32_t vidmap(uint8_t** screen_start);
 int32_t set_handler(int32_t signum, void* handler_address);
 int32_t sigreturn(void);
-/* Initializer function for PCB */
-void pcb_init();
 
 /* File Operations Table Pointer */
 typedef struct fotp {
@@ -40,11 +39,19 @@ typedef struct fd {
 typedef struct pcb {
     fd_t file_array[FILE_ARRAY_SIZE];
     int32_t mem_addr_start;
+    uint8_t* args;
+    int8_t in_use;
     // add more good stuff
 } pcb_t;
 
+
+/* Initializer function for PCB */
+void pcb_init();
+pcb_t* create_new_pcb();
 /* Global PCB file array */
 pcb_t* pcb;
+
+pcb_t pcb_processes[NUM_OF_PROCESSES];
 
 #endif
 #endif
