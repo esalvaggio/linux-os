@@ -3,6 +3,7 @@
 #include "devices/rtc.h"
 #include "devices/keyboard.h"
 #include "paging.h"
+#include "x86_desc.h"
 
 
 #define RTC_FILETYPE         0
@@ -207,6 +208,45 @@ int32_t execute(const uint8_t* command) {
           - should not be able to leave shell!!
             -> first user-level program called in kernel.c
     */
+
+    tss.esp0 = 0x400000; //kernel stack
+
+
+//push USER_DS, ESP, EFLAG, CS, EIP
+    // asm volatile ("                         \n\
+    //                 movl %0, %%EAX          \n\
+    //                 pushl %%EAX             \n\
+    //                 pushl %%ESP             \n\
+    //                 pushFL                  \n\
+    //                 movl %%eax, %%cr4       \n\
+    //                 movl %%cr0, %%eax       \n\
+    //                 orl  $0x80000001, %%eax \n\
+    //                 movl %%eax, %%cr0       \n\
+    //                 "
+    //               :             // (no) ouput
+    //               : "r"(USER_DS), "r"(csReg)   // page_directory as input. r means go through a regster
+    //               : "eax"    // clobbered register
+    //               );
+
+  //push USER_DS, ESP, EFLAG, USER_CS, EIP
+    asm volatile ("                         \n\
+                    movl $0x2B, %%EAX       \n\
+                    movl %%EAX, %%DS        \n\
+                    pushl %%EAX             \n\
+                    pushl %%ESP             \n\
+                    pushFL                  \n\
+                    movl $0x23, %%EAX       \n\
+                    pushl %%EAX             \n\
+                    movl %0, %%EAX          \n\
+                    pushl %%EAX             \n\
+                    "
+                    :             // (no) ouput
+                    : "r"(entry_point)   // page_directory as input. r means go through a regster
+                    : "eax"    // clobbered register
+                  );
+
+
+
     return -1;
 }
 
