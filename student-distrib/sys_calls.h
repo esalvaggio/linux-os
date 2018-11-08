@@ -39,15 +39,17 @@ typedef struct fd {
 typedef struct pcb {
     fd_t file_array[FILE_ARRAY_SIZE];
     int32_t mem_addr_start;
+    int32_t parent_pcb;
     uint8_t* args;
+    int8_t process_num;
     int8_t in_use;
     // add more good stuff
 } pcb_t;
 
 
 /* Initializer function for PCB */
-void pcb_init();
 pcb_t* create_new_pcb();
+
 /* Global PCB file array */
 pcb_t* pcb;
 
