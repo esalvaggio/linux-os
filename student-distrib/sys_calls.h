@@ -5,6 +5,10 @@
 
 #define FILE_ARRAY_SIZE     8
 #define NUM_OF_PROCESSES    8
+#define VIRTUAL_ADDRESS     0x8000000
+#define PAGE_SIZE           0x400000
+#define FOUR_BYTE_ADDR      4
+//pointer is four bytes so you want address of the pointer
 
 #ifndef ASM
 

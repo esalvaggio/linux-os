@@ -26,6 +26,7 @@ fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
+uint32_t user_stack_pointer = VIRTUAL_ADDRESS + PAGE_SIZE - FOUR_BYTE_ADDR
 
 int32_t find_new_process() {
     int i;
@@ -221,25 +222,43 @@ int32_t execute(const uint8_t* command) {
   put calculated entry point onto stack (EIP)
   put calculated physical address in SS
 */
+    // asm volatile ("                         \n\
+    //                 movl $0x2B, %%EAX       \n\
+    //                 movl %%EAX, %%DS        \n\
+    //                 pushl %%EAX             \n\
+    //                 pushl %%ESP             \n\
+    //                 pushFL                  \n\
+    //                 movl $0x23, %%EAX       \n\
+    //                 movl %%EAX, %%CS        \n\
+    //                 pushl %%EAX             \n\
+    //                 movl %0, %%EAX          \n\
+    //                 pushl %%EAX             \n\
+    //                 movl %1, %%SS           \n\
+    //                 iret                    \n\
+    //                 "
+    //                 :             // (no) ouput
+    //                 : "r"(entry_point), "r"(phys_addr)
+    //                 : "eax"    // clobbered register
+    //               );
     asm volatile ("                         \n\
-                    movl $0x2B, %%EAX       \n\
-                    movl %%EAX, %%DS        \n\
-                    pushl %%EAX             \n\
-                    pushl %%ESP             \n\
-                    pushFL                  \n\
-                    movl $0x23, %%EAX       \n\
-                    movl %%EAX, %%CS        \n\
-                    pushl %%EAX             \n\
-                    movl %0, %%EAX          \n\
-                    pushl %%EAX             \n\
-                    movl %1, %%SS           \n\
+                    movl $0x2B, %%ax        \n\
+                    movl %%ax, %%ds         \n\
+                    movl %%ax, %%es         \n\
+                    pushl $0x2B             \n\
+                    pushl %1                \n\
+                    pushfl                  \n\
+                    popl %%eax              \n\
+                    orl $0x00000200,%%eax   \n\
+                    pushl %%eax             \n\
+                    pushl $0x23             \n\
+                    pushl $0                \n\
                     iret                    \n\
+                    RETURN:                 \n\
                     "
-                    :             // (no) ouput
-                    : "r"(entry_point), "r"(phys_addr)
-                    : "eax"    // clobbered register
+                    :                 // (no) ouput
+                    : "r"(entry_point), "r"(user_stack_pointer)   // page_directory as input. r means go through a regster
+                    : "eax","edx"    // clobbered register
                   );
-
 
 
     return -1;
