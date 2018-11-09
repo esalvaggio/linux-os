@@ -31,7 +31,7 @@ uint32_t user_stack_pointer = VIRTUAL_ADDRESS + STACK_PAGE_SIZE - FOUR_BYTE_ADDR
 int32_t find_new_process() {
     int i;
     for (i = 0; i < NUM_OF_PROCESSES; i++) {
-        if (pcb_processes[i].in_use == 0) {
+        if (pcb_processes[i] == NULL) {
           /* Found an open pcb */
           return i;
         }
