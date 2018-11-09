@@ -4,7 +4,7 @@
 #include "types.h"
 
 #define FILE_ARRAY_SIZE     8
-#define NUM_OF_PROCESSES    6
+#define NUM_OF_PROCESSES    8
 
 #ifndef ASM
 
@@ -48,7 +48,9 @@ typedef struct pcb {
 
 
 /* Initializer function for PCB */
-pcb_t* create_new_pcb();
+int32_t find_new_process();
+
+pcb_t* create_new_pcb(int32_t process_num);
 
 /* Global PCB file array */
 pcb_t* pcb;

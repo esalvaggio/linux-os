@@ -149,6 +149,7 @@ void create_IDT_entry()
     /* initialize the system call handler to be used (index 127) */
     if (x == SYSTEM_CALL_IDT) {
       idt[x].present    = 1;
+      idt[x].reserved3  = 1;
       idt[x].dpl        = 3;            // dp = 3 because we want user-level access
     }
 

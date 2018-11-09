@@ -27,22 +27,25 @@ fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
 
-pcb_t* create_new_pcb() {
+int32_t find_new_process() {
     int i;
     for (i = 0; i < NUM_OF_PROCESSES; i++) {
         if (pcb_processes[i].in_use == 0) {
           /* Found an open pcb */
-          break;
+          return i;
         }
-        /* Reached last index and nothing's open */
-        else if (i == NUM_OF_PROCESSES - 1)
-          return NULL;
     }
 
+    /* No pcb's open */
+    return -1;
+}
+
+pcb_t* create_new_pcb(int32_t process_num) {
+
     /* Starts at address: 8MB - (process_num * 8KB) */
-    pcb_t* new_pcb = (pcb_t*)(ADDR_8MB - (i+1)*ADDR_8KB);
-    new_pcb->process_num = i;
-    new_pcb->mem_addr_start = ADDR_8MB - (i+1)*ADDR_8KB;
+    pcb_t* new_pcb = (pcb_t*)(ADDR_8MB - (process_num+1)*ADDR_8KB);
+    new_pcb->process_num = process_num;
+    new_pcb->mem_addr_start = ADDR_8MB - (process_num+1)*ADDR_8KB;
 
     int fa_index;
     for (fa_index = 2; fa_index < FILE_ARRAY_SIZE; fa_index++) {
@@ -78,7 +81,6 @@ int32_t halt(uint8_t status) {
 }
 
 int32_t execute(const uint8_t* command) {
-
 
     /* Instructions
       1. Parse  --- WORKS
@@ -137,14 +139,12 @@ int32_t execute(const uint8_t* command) {
     /* Adress of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
 
-    pcb_t* pcb_new = create_new_pcb();
-    if (pcb_new == NULL)
-        return -1;
+    int32_t process_num = find_new_process();
 
     /*
       3. Paging
           - each process gets its own 4 MB page */
-    uint32_t phys_addr = ADDR_8MB + (pcb_new->process_num * ADDR_4MB);
+    uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
     page_dir_init(0x08000000, phys_addr);
           // page_dir_init(0x08000000, 0x0800000); //8mb phys addr user level shell
           // page_dir_init(0x08000000, 0x0C00000); //12mb stuff
@@ -187,7 +187,7 @@ int32_t execute(const uint8_t* command) {
                 -> above previous process kernel stack
             -> ... so on
     */
-
+    pcb_t* pcb_new = create_new_pcb(process_num);
 
     /* Copy arguments into pcb */
     copy_string(pcb_new->args, args, arg_buf_len);

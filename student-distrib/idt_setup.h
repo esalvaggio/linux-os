@@ -25,7 +25,7 @@
 #define MACHINE_CHECK_IDT      18
 #define SIMD_EXCEPTION_IDT     19
 #define INTEL_DEFINED_IDX      32
-#define SYSTEM_CALL_IDT       127
+#define SYSTEM_CALL_IDT       128
 
 /* IDT initializer function */
 void create_IDT_entry();
