@@ -26,7 +26,7 @@ fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
-uint32_t user_stack_pointer = VIRTUAL_ADDRESS + PAGE_SIZE - FOUR_BYTE_ADDR
+uint32_t user_stack_pointer = VIRTUAL_ADDRESS + PAGE_SIZE - FOUR_BYTE_ADDR;
 
 int32_t find_new_process() {
     int i;
@@ -240,10 +240,14 @@ int32_t execute(const uint8_t* command) {
     //                 : "r"(entry_point), "r"(phys_addr)
     //                 : "eax"    // clobbered register
     //               );
+    //order should be correct. Only moving into ax instead of eax. instead of esp, should be
+    //the user stack pointer variable which is the sum of the virtual address and page size, 
+    //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
+    //(not sure why) then push hex 23 and the entry point variable. iret cause iret 
     asm volatile ("                         \n\
-                    movl $0x2B, %%ax        \n\
-                    movl %%ax, %%ds         \n\
-                    movl %%ax, %%es         \n\
+                    movw $0x2B, %%ax        \n\
+                    movw %%ax, %%ds         \n\
+                    movw %%ax, %%es         \n\
                     pushl $0x2B             \n\
                     pushl %1                \n\
                     pushfl                  \n\
@@ -251,16 +255,13 @@ int32_t execute(const uint8_t* command) {
                     orl $0x00000200,%%eax   \n\
                     pushl %%eax             \n\
                     pushl $0x23             \n\
-                    pushl $0                \n\
+                    pushl %0                \n\
                     iret                    \n\
-                    RETURN:                 \n\
                     "
                     :                 // (no) ouput
                     : "r"(entry_point), "r"(user_stack_pointer)   // page_directory as input. r means go through a regster
                     : "eax","edx"    // clobbered register
                   );
-
-
     return -1;
 }
 
