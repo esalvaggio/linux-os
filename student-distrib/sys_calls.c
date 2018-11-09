@@ -121,25 +121,29 @@ int32_t execute(const uint8_t* command) {
               -> entry point bytes 24-27
     */
     dentry_t dentry;
-    if (read_dentry_by_name(fname, &dentry) < 0)
+    if (read_dentry_by_name(fname, &dentry) < 0) {
           sti();
           return -1;
+    }
 
     int8_t ex_buf[4];
-    if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0)
+    if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0) {
         sti();
         return -1;
+    }
 
     for (command_idx = 0; command_idx < 4; command_idx++) {
-        if (ex_buf[command_idx] != executable_check[command_idx])
+        if (ex_buf[command_idx] != executable_check[command_idx]) {
             sti();
             return -1;
+        }
     }
 
     /* get entry point from bytes 24-27 */
-    if (read_data(dentry.inode_num, 24, ex_buf, 27) < 0)
+    if (read_data(dentry.inode_num, 24, ex_buf, 27) < 0) {
         sti();
         return -1;
+    }
 
     /* Adress of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
@@ -169,9 +173,10 @@ int32_t execute(const uint8_t* command) {
 */
 
     inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
-    if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0)
+    if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0) {
         sti();
         return -1;
+    }
 
     /* Flush TLB by writing to CR3 */
     asm volatile(
@@ -218,7 +223,7 @@ int32_t execute(const uint8_t* command) {
     tss.esp0 = pcb_new->mem_addr_start - FOUR_BYTE_ADDR; //8MB - 8KB(process#) - 4 (address length)
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
-/* redid this but keeping this column 
+/* redid this but keeping this column
   push USER_DS, ESP, EFLAG, USER_CS, EIP
   put USER_DS in DS and stack (2B)
   push ESP
@@ -228,7 +233,7 @@ int32_t execute(const uint8_t* command) {
   put calculated physical address in SS
 */
     //order should be correct. Only moving into ax instead of eax. instead of esp, should be
-    //the user stack pointer variable which is the sum of the virtual address and page size, 
+    //the user stack pointer variable which is the sum of the virtual address and page size,
     //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
     //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
     //it needs the return address that execute has. Call END_OF_EXECUTE in halt
@@ -250,7 +255,7 @@ int32_t execute(const uint8_t* command) {
                     ret                     \n\
                     "
                     :                 // (no) ouput
-                    : "r"(entry_point), "r"(user_stack_pointer)    
+                    : "r"(entry_point), "r"(user_stack_pointer)
                     : "eax","edx"    // clobbered register
                   );
     sti();

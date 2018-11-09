@@ -308,6 +308,20 @@ int file_system_test_4() {
 }
 
 /* Checkpoint 3 tests */
+
+void linkage_test() {
+
+	printf("we here\n");
+	int fail;
+	int sys_call = 2;
+	asm volatile (
+								"movl %0, %%eax\n\t"
+								"int $0x80"
+								: "=a"(fail)
+								:	"r"(sys_call)
+							);
+}
+
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
 
@@ -331,4 +345,5 @@ void launch_tests(){
 	/*Checkpoint 2 regade tests*/
 
 	/* Checkpoint 3 tests */
+	linkage_test();
 }
