@@ -26,7 +26,7 @@ fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
-uint32_t user_stack_pointer = VIRTUAL_ADDRESS + PAGE_SIZE - FOUR_BYTE_ADDR;
+uint32_t user_stack_pointer = VIRTUAL_ADDRESS + STACK_PAGE_SIZE - FOUR_BYTE_ADDR;
 
 int32_t find_new_process() {
     int i;
@@ -82,7 +82,7 @@ int32_t halt(uint8_t status) {
 }
 
 int32_t execute(const uint8_t* command) {
-
+    cli();
     /* Instructions
       1. Parse  --- WORKS
           - command: ["filename" + " " + "string of args"]
@@ -122,19 +122,23 @@ int32_t execute(const uint8_t* command) {
     */
     dentry_t dentry;
     if (read_dentry_by_name(fname, &dentry) < 0)
+          sti();
           return -1;
 
     int8_t ex_buf[4];
     if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0)
+        sti();
         return -1;
 
     for (command_idx = 0; command_idx < 4; command_idx++) {
         if (ex_buf[command_idx] != executable_check[command_idx])
+            sti();
             return -1;
     }
 
     /* get entry point from bytes 24-27 */
     if (read_data(dentry.inode_num, 24, ex_buf, 27) < 0)
+        sti();
         return -1;
 
     /* Adress of first instruction */
@@ -166,6 +170,7 @@ int32_t execute(const uint8_t* command) {
 
     inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
     if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0)
+        sti();
         return -1;
 
     /* Flush TLB by writing to CR3 */
@@ -210,10 +215,10 @@ int32_t execute(const uint8_t* command) {
             -> first user-level program called in kernel.c
     */
 
-    tss.esp0 = pcb_new->mem_addr_start; //kernel stack
+    tss.esp0 = pcb_new->mem_addr_start - FOUR_BYTE_ADDR; //8MB - 8KB(process#) - 4 (address length)
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
-/*
+/* redid this but keeping this column 
   push USER_DS, ESP, EFLAG, USER_CS, EIP
   put USER_DS in DS and stack (2B)
   push ESP
@@ -222,28 +227,11 @@ int32_t execute(const uint8_t* command) {
   put calculated entry point onto stack (EIP)
   put calculated physical address in SS
 */
-    // asm volatile ("                         \n\
-    //                 movl $0x2B, %%EAX       \n\
-    //                 movl %%EAX, %%DS        \n\
-    //                 pushl %%EAX             \n\
-    //                 pushl %%ESP             \n\
-    //                 pushFL                  \n\
-    //                 movl $0x23, %%EAX       \n\
-    //                 movl %%EAX, %%CS        \n\
-    //                 pushl %%EAX             \n\
-    //                 movl %0, %%EAX          \n\
-    //                 pushl %%EAX             \n\
-    //                 movl %1, %%SS           \n\
-    //                 iret                    \n\
-    //                 "
-    //                 :             // (no) ouput
-    //                 : "r"(entry_point), "r"(phys_addr)
-    //                 : "eax"    // clobbered register
-    //               );
     //order should be correct. Only moving into ax instead of eax. instead of esp, should be
     //the user stack pointer variable which is the sum of the virtual address and page size, 
     //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
-    //(not sure why) then push hex 23 and the entry point variable. iret cause iret 
+    //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
+    //it needs the return address that execute has. Call END_OF_EXECUTE in halt
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -257,12 +245,16 @@ int32_t execute(const uint8_t* command) {
                     pushl $0x23             \n\
                     pushl %0                \n\
                     iret                    \n\
+                    END_OF_EXECUTE:         \n\
+                    leave                   \n\
+                    ret                     \n\
                     "
                     :                 // (no) ouput
-                    : "r"(entry_point), "r"(user_stack_pointer)   // page_directory as input. r means go through a regster
+                    : "r"(entry_point), "r"(user_stack_pointer)    
                     : "eax","edx"    // clobbered register
                   );
-    return -1;
+    sti();
+    return 0; //shouldn't get this far
 }
 
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
