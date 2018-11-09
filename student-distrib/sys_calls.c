@@ -173,7 +173,7 @@ int32_t execute(const uint8_t* command) {
                   "movl %%eax, %%cr3;"
                   : /* no outputs */
                   : /* no inputs */
-                  : "%eax"
+                  : "eax"
                   );
 
     /*
@@ -232,6 +232,7 @@ int32_t execute(const uint8_t* command) {
     asm volatile ("                         \n\
                     movl $0x2B, %%EAX       \n\
                     movl %%EAX, %%DS        \n\
+                    pushl $0x2B             \n\
                     pushl %%EAX             \n\
                     pushl %%ESP             \n\
                     pushFL                  \n\
@@ -239,6 +240,7 @@ int32_t execute(const uint8_t* command) {
                     pushl %%EAX             \n\
                     movl %0, %%EAX          \n\
                     pushl %%EAX             \n\
+                    iret                    \n\
                     "
                     :             // (no) ouput
                     : "r"(entry_point)   // page_directory as input. r means go through a regster
