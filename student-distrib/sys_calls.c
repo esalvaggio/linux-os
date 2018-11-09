@@ -209,41 +209,34 @@ int32_t execute(const uint8_t* command) {
             -> first user-level program called in kernel.c
     */
 
-    tss.esp0 = 0x400000; //kernel stack
+    tss.esp0 = pcb_new->mem_addr_start; //kernel stack
+    tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
-
-//push USER_DS, ESP, EFLAG, CS, EIP
-    // asm volatile ("                         \n\
-    //                 movl %0, %%EAX          \n\
-    //                 pushl %%EAX             \n\
-    //                 pushl %%ESP             \n\
-    //                 pushFL                  \n\
-    //                 movl %%eax, %%cr4       \n\
-    //                 movl %%cr0, %%eax       \n\
-    //                 orl  $0x80000001, %%eax \n\
-    //                 movl %%eax, %%cr0       \n\
-    //                 "
-    //               :             // (no) ouput
-    //               : "r"(USER_DS), "r"(csReg)   // page_directory as input. r means go through a regster
-    //               : "eax"    // clobbered register
-    //               );
-
-  //push USER_DS, ESP, EFLAG, USER_CS, EIP
+/*
+  push USER_DS, ESP, EFLAG, USER_CS, EIP
+  put USER_DS in DS and stack (2B)
+  push ESP
+  push Flags
+  put USER_CS in CS and stack (23)
+  put calculated entry point onto stack (EIP)
+  put calculated physical address in SS
+*/
     asm volatile ("                         \n\
                     movl $0x2B, %%EAX       \n\
                     movl %%EAX, %%DS        \n\
-                    pushl $0x2B             \n\
                     pushl %%EAX             \n\
                     pushl %%ESP             \n\
                     pushFL                  \n\
                     movl $0x23, %%EAX       \n\
+                    movl %%EAX, %%CS        \n\
                     pushl %%EAX             \n\
                     movl %0, %%EAX          \n\
                     pushl %%EAX             \n\
+                    movl %1, %%SS           \n\
                     iret                    \n\
                     "
                     :             // (no) ouput
-                    : "r"(entry_point)   // page_directory as input. r means go through a regster
+                    : "r"(entry_point), "r"(phys_addr)
                     : "eax"    // clobbered register
                   );
 
