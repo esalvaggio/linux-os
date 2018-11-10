@@ -49,6 +49,7 @@ sys_call_handler:
   popl %esi
   popl %edi
   popl %ebp
+  addl $4, %esp
 
 end:
   sti

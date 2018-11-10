@@ -261,7 +261,9 @@ int32_t execute(const uint8_t* command) {
     //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
     //it needs the return address that execute has. Call END_OF_EXECUTE in halt
 
-
+    // END_OF_EXECUTE:         \n\
+    // leave                   \n\
+    // ret                     \n\
 
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
@@ -278,9 +280,7 @@ int32_t execute(const uint8_t* command) {
                     pushl $0x23             \n\
                     pushl %0                \n\
                     iret                    \n\
-                    END_OF_EXECUTE:         \n\
-                    leave                   \n\
-                    ret                     \n\
+                    addl $20, %%esp         \n\
                     "
                     :                 // (no) ouput
                     : "r"(entry_point), "r"(user_stack_pointer)
@@ -308,7 +308,16 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 }
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
-  printf("Made it to write");
+  // printf("Made it to write");
+  // printf("Made it to write 2");
+  //Terminal_Write(buf, nbytes);
+  printf("%d Num Bytes: \n", nbytes);
+  int x;
+  for(x = 0; x < nbytes; x++)
+  {
+    putc( ((char *)buf)[x]);
+  }
+  //printf((char*)buf);
     return -1;
 }
 

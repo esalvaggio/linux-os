@@ -5,6 +5,7 @@
 #include "./devices/i8259.h"
 #include "fs_setup.h"
 #include "./devices/keyboard.h"
+#include "sys_calls.h"
 
 
 #define PASS 1
@@ -325,6 +326,7 @@ void linkage_test() {
 
 void execute_test(){
 	//uint8_t shell[6] = "shell ";
+	TEST_HEADER;
 	int8_t * shell = "shell ";
 	int8_t * testPrint = "testprint ";
 	int fail;
@@ -333,18 +335,19 @@ void execute_test(){
 
 	//int readResult = Terminal_Read(b,128);
  //int8_t * cat = "cat ";
-	 //uint32_t ret = execute(shell);
-	asm volatile ("								\n\
-								movl $2, %%eax	\n\
-							  movl %0, %%ebx  \n\
-								int $0x80				\n\
-								"
-								:
-								:	"r"(testPrint)
-								: "eax" , "ebx"
-							);
-
-
+	 execute(testPrint);
+// 	asm volatile ("								\n\
+// 								movl $2, %%eax	\n\
+// 							  movl %0, %%ebx  \n\
+// 								int $0x80				\n\
+// 								"
+// 								:
+// 								:	"r"(testPrint)
+// 								: "eax" , "ebx"
+// 							);
+//
+ printf("Success");
+return PASS;
 
 }
 

@@ -46,7 +46,7 @@ void Paging_Init(){
 
 void page_dir_init(uint32_t virtual_addr, uint32_t phys_addr){
   uint32_t index = virtual_addr / FOURMB;
-  page_directory[index] = phys_addr + PAGE_SIZE + RE_WR + PRESENT_BIT;
+  page_directory[index] = phys_addr + PAGE_SIZE + RE_WR + PRESENT_BIT + USER;
   flushTLB();
 
 }
