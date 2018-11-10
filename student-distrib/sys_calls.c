@@ -20,6 +20,8 @@
 #define ADDR_4KB      0x001000
 #define FILE_ENTRY  0x08048000
 
+pcb_t* pcb;
+pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
 fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
@@ -122,7 +124,7 @@ int32_t execute(const uint8_t* command) {
               -> first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
               -> entry point bytes 24-27
     */
-    printf("%s",fname);
+    printf("%s \n",fname);
 
     dentry_t dentry;
     if (read_dentry_by_name(fname, &dentry) < 0) {
@@ -150,18 +152,19 @@ int32_t execute(const uint8_t* command) {
     }
 
     /* get entry point from bytes 24-27 */
-    // if (read_data(dentry.inode_num, 24, ex_buf, 27) < 0) {
-    //     sti();
-    //     return -1;
-    // }
-
-    if (read_data(dentry.inode_num, 24, ex_buf, 4) < 0) {
+    if (read_data(dentry.inode_num, 24, ex_buf, 28) < 0) {
         sti();
         return -1;
     }
+
+    // if (read_data(dentry.inode_num, 24, ex_buf, 4) < 0) {
+    //     sti();
+    //     return -1;
+    // }
+    printf("EXBuf \n");
     int elliot;
     for(elliot = 0; elliot < 4; elliot++) {
-      printf("%x", ex_buf[elliot]);
+      printf("%x \n", ex_buf[elliot]);
     }
     putc('\n');
     /* Address of first instruction */
@@ -191,12 +194,14 @@ int32_t execute(const uint8_t* command) {
               -> after initializing a new page
 */
 
-    inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
-    if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0) {
-        sti();
-        return -1;
-    }
-
+     inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
+    // if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0) {
+    //     sti();
+    //     return -1;
+    // }
+    int result = read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length);
+    printf("%d \n", result);
+    printf("%d \n", inode->length);
     /* Flush TLB by writing to CR3 */
     flushTLB();
 
@@ -212,10 +217,10 @@ int32_t execute(const uint8_t* command) {
             -> ... so on
     */
     pcb_t* pcb_new = create_new_pcb(process_num);
-
+    printf("After new_pcb \n");
     /* Copy arguments into pcb */
     copy_string(pcb_new->args, args, arg_buf_len);
-
+    printf("After copy string \n");
 
     /*
       6. context switch
@@ -237,8 +242,10 @@ int32_t execute(const uint8_t* command) {
     tss.esp0 = 0x800000 - 0x2000*(process_num) - 4;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
-    printf("%x\n", user_stack_pointer);
-    printf("%x\n", entry_point);
+    printf("%x \n", tss.esp0);
+    printf("%x \n", tss.ss0);
+    printf("%x \n", user_stack_pointer);
+    printf("%x \n", entry_point);
 /* redid this but keeping this column
   push USER_DS, ESP, EFLAG, USER_CS, EIP
   put USER_DS in DS and stack (2B)
@@ -253,6 +260,9 @@ int32_t execute(const uint8_t* command) {
     //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
     //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
     //it needs the return address that execute has. Call END_OF_EXECUTE in halt
+
+
+
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -298,6 +308,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 }
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
+  printf("Made it to write");
     return -1;
 }
 

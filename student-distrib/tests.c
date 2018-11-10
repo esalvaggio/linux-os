@@ -322,11 +322,17 @@ void linkage_test() {
 								:	"r"(sys_call)
 							);
 }
+
 void execute_test(){
 	//uint8_t shell[6] = "shell ";
 	int8_t * shell = "shell ";
+	int8_t * testPrint = "testprint ";
 	int fail;
-	//int execute = 5;
+ 	int8_t * ls = "ls ";
+	char b[128] = "";
+
+	//int readResult = Terminal_Read(b,128);
+ //int8_t * cat = "cat ";
 	 //uint32_t ret = execute(shell);
 	asm volatile ("								\n\
 								movl $2, %%eax	\n\
@@ -334,9 +340,12 @@ void execute_test(){
 								int $0x80				\n\
 								"
 								:
-								:	"r"(shell)
+								:	"r"(testPrint)
 								: "eax" , "ebx"
 							);
+
+
+
 }
 
 /* Checkpoint 4 tests */
