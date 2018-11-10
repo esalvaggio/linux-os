@@ -83,13 +83,14 @@ int divide_by_zero_test(){
 int paging_test(){
 	TEST_HEADER;
 
-	int * validAddress1 = (int *)0xB8000;
-	int * validAddress2 = (int *)0xB8FFC;
+	page_dir_init(0x08000000, 0x800000);
+	int * validAddress1 = (int *)0x08000000;
+	int * validAddress2 = (int *)0x08048000;
 	printf("Inside valid Video memory address 1: %d\n", *validAddress1);
 	printf("Inside valid Video memory address 2: %d\n", *validAddress2);
-	int * invalidAddress = (int *)0xB8FFF;
-	printf("Inside invalid address: ");
-	printf("%d\n", *invalidAddress);
+	// int * invalidAddress = (int *)0xB8FFF;
+	// printf("Inside invalid address: ");
+	// printf("%d\n", *invalidAddress);
 	return PASS;
 }
 
@@ -321,6 +322,22 @@ void linkage_test() {
 								:	"r"(sys_call)
 							);
 }
+void execute_test(){
+	//uint8_t shell[6] = "shell ";
+	int8_t * shell = "shell ";
+	int fail;
+	//int execute = 5;
+	 //uint32_t ret = execute(shell);
+	asm volatile ("								\n\
+								movl $2, %%eax	\n\
+							  movl %0, %%ebx  \n\
+								int $0x80				\n\
+								"
+								:
+								:	"r"(shell)
+								: "eax" , "ebx"
+							);
+}
 
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -329,7 +346,7 @@ void linkage_test() {
 /* Test suite entry point */
 void launch_tests(){
 	// TEST_OUTPUT("idt_test", idt_test());
-	// TEST_OUTPUT("paging_test", paging_test());
+	//TEST_OUTPUT("paging_test", paging_test());
 	//TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
 	/* to test RTC, go to rtc.c */
 
@@ -345,5 +362,7 @@ void launch_tests(){
 	/*Checkpoint 2 regade tests*/
 
 	/* Checkpoint 3 tests */
-	linkage_test();
+	// linkage_test();
+	 execute_test();
+
 }

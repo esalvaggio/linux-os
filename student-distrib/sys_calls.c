@@ -87,14 +87,16 @@ int32_t execute(const uint8_t* command) {
       1. Parse  --- WORKS
           - command: ["filename" + " " + "string of args"]
     */
+    printf("Hi \n");
     int32_t command_idx, arg_buf_len;
     int32_t command_length = strlen((int8_t*)command);
     uint8_t* fname;
     uint8_t* args;
     for (command_idx = 0; command_idx < command_length; command_idx++) {
-
+      printf("Loop \n");
         if (command[command_idx] == ' ') {
             /* Get filename */
+            printf("Inside If \n");
             uint8_t buf[FILENAME_SIZE];
             copy_string(buf, command, command_idx);
             buf[command_idx] = '\0';
@@ -120,17 +122,25 @@ int32_t execute(const uint8_t* command) {
               -> first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
               -> entry point bytes 24-27
     */
+    printf("%s",fname);
+
     dentry_t dentry;
     if (read_dentry_by_name(fname, &dentry) < 0) {
           sti();
           return -1;
     }
 
+    // int8_t ex_buf[4];
+    // if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0) {
+    //     sti();
+    //     return -1;
+    // }
     int8_t ex_buf[4];
-    if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0) {
+    if (read_data(dentry.inode_num, 0, ex_buf, 4) < 4) {
         sti();
         return -1;
     }
+
 
     for (command_idx = 0; command_idx < 4; command_idx++) {
         if (ex_buf[command_idx] != executable_check[command_idx]) {
@@ -140,12 +150,21 @@ int32_t execute(const uint8_t* command) {
     }
 
     /* get entry point from bytes 24-27 */
-    if (read_data(dentry.inode_num, 24, ex_buf, 27) < 0) {
+    // if (read_data(dentry.inode_num, 24, ex_buf, 27) < 0) {
+    //     sti();
+    //     return -1;
+    // }
+
+    if (read_data(dentry.inode_num, 24, ex_buf, 4) < 0) {
         sti();
         return -1;
     }
-
-    /* Adress of first instruction */
+    int elliot;
+    for(elliot = 0; elliot < 4; elliot++) {
+      printf("%x", ex_buf[elliot]);
+    }
+    putc('\n');
+    /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
 
     int32_t process_num = find_new_process();
@@ -179,13 +198,7 @@ int32_t execute(const uint8_t* command) {
     }
 
     /* Flush TLB by writing to CR3 */
-    asm volatile(
-                  "movl %%cr3, %%eax;"
-                  "movl %%eax, %%cr3;"
-                  : /* no outputs */
-                  : /* no inputs */
-                  : "eax"
-                  );
+    flushTLB();
 
     /*
       5. create PCB
@@ -220,9 +233,12 @@ int32_t execute(const uint8_t* command) {
             -> first user-level program called in kernel.c
     */
 
-    tss.esp0 = pcb_new->mem_addr_start - FOUR_BYTE_ADDR; //8MB - 8KB(process#) - 4 (address length)
+    //tss.esp0 = pcb_new->mem_addr_start + FOUR_BYTE_ADDR; //8MB - 8KB(process#) - 4 (address length)
+    tss.esp0 = 0x800000 - 0x2000*(process_num) - 4;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
+    printf("%x\n", user_stack_pointer);
+    printf("%x\n", entry_point);
 /* redid this but keeping this column
   push USER_DS, ESP, EFLAG, USER_CS, EIP
   put USER_DS in DS and stack (2B)
@@ -241,6 +257,8 @@ int32_t execute(const uint8_t* command) {
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
                     movw %%ax, %%es         \n\
+                    movw %%ax, %%fs         \n\
+                    movw %%ax, %%gs         \n\
                     pushl $0x2B             \n\
                     pushl %1                \n\
                     pushfl                  \n\
@@ -259,6 +277,7 @@ int32_t execute(const uint8_t* command) {
                     : "eax","edx"    // clobbered register
                   );
     sti();
+    printf("End of Execute \n");
     return 0; //shouldn't get this far
 }
 

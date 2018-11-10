@@ -47,11 +47,13 @@ void Paging_Init(){
 void page_dir_init(uint32_t virtual_addr, uint32_t phys_addr){
   uint32_t index = virtual_addr / FOURMB;
   page_directory[index] = phys_addr + PAGE_SIZE + RE_WR + PRESENT_BIT;
+  flushTLB();
 
-  //flush tlb
+}
+void flushTLB(void){
   asm volatile ("                           \n\
-                    movl	%%eax,%%cr3       \n\
                     movl	%%cr3,%%eax       \n\
+                    movl	%%eax,%%cr3       \n\
                   "
                 :             // (no) ouput
                 :             // page_directory as input. r means go through a regster

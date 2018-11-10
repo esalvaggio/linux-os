@@ -28,9 +28,10 @@ sys_call_handler:
 
   cmpl $1, %eax
   jl invalid
-  cmpl $7, %eax
+  cmpl $11, %eax
   jge invalid
 
+  pushl %eax
   pushl %ebp
   pushl %edi
   pushl %esi

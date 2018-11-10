@@ -13,13 +13,14 @@ void Paging_Init();
 #define RE_WR       0x02
 #define PAGE_SIZE   0x80
 #define VIDEO       0xB8000
-#define FOURMB 400000
+#define FOURMB      0x400000
 
 
 
 uint32_t page_directory[TABLE_SIZE] __attribute__((aligned (AMT_BYTE)));
 uint32_t page_table[TABLE_SIZE] __attribute__((aligned (AMT_BYTE)));
 void page_dir_init(uint32_t virtual_addr, uint32_t phys_addr);
+void flushTLB(void);
 
 
 #endif
