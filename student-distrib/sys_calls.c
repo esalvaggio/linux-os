@@ -407,7 +407,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     /* Check file position */
     fd_t file_desc = pcb->file_array[fd];
     printf("Inode: %d\n", file_desc.inode);
-    inode_t* inode = (inode_t*)(boot_block + file_desc.inodeS);
+    inode_t* inode = (inode_t*)(boot_block + file_desc.inode);
     /* Return 0 if we've reached the end of the file */
 
     printf("Before If \n");
@@ -421,16 +421,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 }
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
-  /*
-  int bytes = nbytes;
-  printf("bytes = %d\n", bytes);
-  Terminal_Write(0, buf, bytes);
-  */
-  // for(x = 0; x < nbytes; x++)
-  // {
-  //   putc( ((char *)buf)[x]);
-  // }
-  //printf((char*)buf);
+
   int i;
   for (i =0 ; i < 8; i++){
       if (pcb_processes[i] != 0x0){
