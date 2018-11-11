@@ -41,7 +41,7 @@ sys_call_handler:
 
   sti
   call *system_call_jump_table(,%eax,4)
-  cli
+  cli   /*Returns here */
 
   popl %ebx
   popl %ecx
@@ -50,7 +50,6 @@ sys_call_handler:
   popl %edi
   popl %ebp
   addl $4, %esp
-
 end:
   sti
   iret

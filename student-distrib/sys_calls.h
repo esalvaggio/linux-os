@@ -49,6 +49,8 @@ typedef struct pcb {
     int8_t in_use;
     int32_t esp;
     int32_t ebp;
+    int32_t esp0;
+    int32_t ss0;
     // add more good stuff
 } pcb_t;
 

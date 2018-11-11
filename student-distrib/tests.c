@@ -331,17 +331,17 @@ int execute_test_print_test(){
 	uint8_t * testPrint = (uint8_t *)"testprint";
 
 
-	//execute(testPrint);
+	execute(testPrint);
 
-	asm volatile ("								\n\
-								movl $2, %%eax	\n\
-							  movl %0, %%ebx  \n\
-								int $0x80				\n\
-								"
-								:
-								:	"r"(testPrint)
-								: "eax" , "ebx"
-							);
+	// asm volatile ("								\n\
+	// 							movl $2, %%eax	\n\
+	// 						  movl %0, %%ebx  \n\
+	// 							int $0x80				\n\
+	// 							"
+	// 							:
+	// 							:	"r"(testPrint)
+	// 							: "eax" , "ebx"
+	// 						);
 
  return PASS;
 }

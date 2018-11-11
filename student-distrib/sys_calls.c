@@ -87,21 +87,24 @@ int32_t halt(uint8_t status) {
           WHO KNOWS
 
           */
-          printf("Made it to Halt \n");
+    /*
+    jumps into execute, restores eip
+    */
     int index;
     int current_num = 0;
+    int old_num = 0;
     pcb_t * pcb_rent;
     for (index = 0; index < NUM_OF_PROCESSES; index++){
         if (pcb_processes[index] != 0x0){
           if (pcb_processes[index]->in_use == 1){
 
-            if(index == 0) //first process does not have a parent so skip parent stuff
-            {
-              break;
-            }
+              if(pcb_processes[index]->parent_pcb == 0x0) //first process does not have a parent so skip parent stuff
+              {
+                break;
+              }
               current_num = pcb_processes[index]->process_num;
               pcb_rent = (pcb_t *)pcb_processes[index]->parent_pcb;
-
+              old_num = pcb_rent->process_num;
               pcb_processes[index]->in_use = 0;
                 pcb_rent->in_use = 1;
               break;
@@ -109,15 +112,14 @@ int32_t halt(uint8_t status) {
         }
     }
 
-    printf("After PCB stuff \n");
-/*
-      2. Restore parent paging
-        - similar to how we set up paging in execute()
-        - flush TLB!
-*/
-uint32_t phys_addr = ADDR_8MB + (current_num * ADDR_4MB);
-page_dir_init(0x08000000, phys_addr); //set the paging back to 8MB
-/*
+    /*
+          2. Restore parent paging
+            - similar to how we set up paging in execute()
+            - flush TLB!
+    */
+    //uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
+    page_dir_init(0x08000000, ADDR_8MB); //set the paging back to 8MB
+      /*
       3. Clear all file descriptors
         - calling close()
       4. Jump back to parent process
@@ -131,16 +133,20 @@ page_dir_init(0x08000000, phys_addr); //set the paging back to 8MB
     }
     //4
 
-//We need to somehow return to the parent esp/ebp that should be saved in the pcb structure
-//Not really sure what to do with them
+    //We need to somehow return to the parent esp/ebp that should be saved in the pcb structure
+    //Not really sure what to do with them
+    tss.esp0 = pcb_processes[old_num]->esp0;
+    tss.ss0 = pcb_processes[old_num]->ss0; //kernel stack segment = kernel_DS
 
 
-    printf("before small boi\n");
 
     asm volatile ("                         \n\
+                    movl %0, %%EBP          \n\
+                    movl $0, %%eax          \n\
                     jmp END_OF_EXECUTE      \n\
                     "
-                    :                 // (no) ouput
+                    :
+                    : "r"(pcb_processes[current_num]->ebp)               // (no) ouput
                   );
 
     return 0;
@@ -320,6 +326,10 @@ int32_t execute(const uint8_t* command) {
     tss.esp0 = 0x800000 - 0x2000*(process_num) - 4;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
+    pcb_processes[process_num]->esp0 = tss.esp0;
+    pcb_processes[process_num]->ss0 = tss.ss0;
+
+
     // printf("%x \n", tss.esp0);
     // printf("%x \n", tss.ss0);
     // printf("%x \n", user_stack_pointer);
@@ -339,19 +349,19 @@ int32_t execute(const uint8_t* command) {
     //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
     //it needs the return address that execute has. Call END_OF_EXECUTE in halt
 
-// uint32_t curr_ebp;
+uint32_t curr_ebp;
 // uint32_t curr_esp;
 //
 // //we need to save the esp/ebp of each respective program
-// asm volatile("movl %%esp, %%eax             \n\
-//               movl %%ebp, %%ebx             \n\
-//               "
-//             : "=r"(curr_ebp), "=r"(curr_esp)
-//           );
-//
-//   pcb_new->esp = curr_esp;
-//   pcb_new->ebp = curr_ebp;
+asm volatile("                              \n\
+              movl %%ebp, %0             \n\
+              "
+            : "=r"(curr_ebp)
+          );
 
+// pcb_new->esp = curr_esp;
+  pcb_new->ebp = curr_ebp;
+  printf("EBP: %x\n", curr_ebp);
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -396,12 +406,17 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
         return -1;
     /* Check file position */
     fd_t file_desc = pcb->file_array[fd];
-    inode_t* inode = (inode_t*)(boot_block + file_desc.inode + 1);
+    printf("Inode: %d\n", file_desc.inode);
+    inode_t* inode = (inode_t*)(boot_block + file_desc.inodeS);
     /* Return 0 if we've reached the end of the file */
 
+    printf("Before If \n");
+    printf("File Pos: %d \n", file_desc.file_pos);
+    printf("Inode Length: %d \n", inode->length);
     if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
     /* Make the correct read call for file type */
+    printf("Return \n");
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 
@@ -443,8 +458,8 @@ int32_t open(const uint8_t* filename) {
     if (read_dentry_by_name(filename, &dentry) < 0) /* causes warning here?? */
         return -1;
 
-        printf("After read dentry \n");
     int fa_index;
+    int32_t fd = 6;
     for (fa_index = 2; fa_index < FILENAME_SIZE; fa_index++) {
         /* Find the next open location in file array */
         fd_t file_desc = pcb->file_array[fa_index];
@@ -459,8 +474,6 @@ int32_t open(const uint8_t* filename) {
             file_desc.file_pos = 0;
             file_desc.flags = 1;
 
-            int32_t fd;
-            printf("Before Switch \n");
             switch (dentry.filetype)
             {
                 case RTC_FILETYPE:
@@ -480,8 +493,7 @@ int32_t open(const uint8_t* filename) {
                     file_desc.file_ops_table_ptr = file_funcs;
                     break;
             }
-            printf("Before Return \n");
-            printf("Index: %d", fa_index);
+            pcb->file_array[fa_index] = file_desc;
             return fa_index;
         }
     }
