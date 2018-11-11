@@ -19,7 +19,6 @@
 #define ADDR_8KB      0x002000
 #define ADDR_4KB      0x001000
 #define FILE_ENTRY  0x08048000
-
 pcb_t* pcb;
 pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
@@ -58,6 +57,8 @@ pcb_t* create_new_pcb(int32_t process_num) {
       new_pcb->file_array[fa_index].file_pos = 0;
     }
 
+    new_pcb->parent_pcb = 0x0;
+
     // set terminal read/write to indexes 0 and 1 here!
 
     return new_pcb;
@@ -70,7 +71,37 @@ int32_t halt(uint8_t status) {
     /*
       1. Restore parent data
         - parent process number (most important)
-          -> look in PCB for this
+          -> look in PCB for this*/
+
+          /*
+          NONE OF THIS WORKS!!!!!!!
+          DONT TAKE ANY OF IT SERIOUSLY
+          THE PCB STUFF MIGHT WORK
+          WHO KNOWS
+
+          */
+    int index;
+    int current_num;
+    pcb_t * pcb_rent;
+    for (index = 0; index < NUM_OF_PROCESSES; index++){
+        if (pcb_processes[index] != 0x0){
+          if (pcb_processes[index]->in_use == 1){
+              current_num = pcb_processes[index]->process_num;
+              pcb_rent = pcb_processes[index]->parent_pcb;
+
+              pcb_processes[index]->in_use = 0;
+              break;
+          }
+        }
+    }
+    pcb_rent->in_use = 1;
+    asm volatile ("                         \n\
+                    jmp END_OF_EXECUTE      \n\
+                    "
+                    :                 // (no) ouput
+                  );
+
+/*
       2. Restore parent paging
         - similar to how we set up paging in execute()
         - flush TLB!
@@ -89,21 +120,20 @@ int32_t execute(const uint8_t* command) {
       1. Parse  --- WORKS
           - command: ["filename" + " " + "string of args"]
     */
-    printf("Hi \n");
     int32_t command_idx, arg_buf_len;
     int32_t command_length = strlen((int8_t*)command);
     uint8_t* fname;
     uint8_t* args;
+    uint8_t space_flag = 0;
+
     for (command_idx = 0; command_idx < command_length; command_idx++) {
-      printf("Loop \n");
         if (command[command_idx] == ' ') {
+            space_flag = 1;
             /* Get filename */
-            printf("Inside If \n");
             uint8_t buf[FILENAME_SIZE];
             copy_string(buf, command, command_idx);
             buf[command_idx] = '\0';
             fname = buf;
-            printf("%s ", fname);
 
             /* Get arguments */
             arg_buf_len = command_length - (command_idx + 1);
@@ -111,10 +141,19 @@ int32_t execute(const uint8_t* command) {
             copy_string(arg_buf, &command[command_idx + 1], arg_buf_len);
             arg_buf[arg_buf_len] = '\0';
             args = arg_buf;
-            printf("%s\n", args);
             break;
         }
+
     }
+    if (space_flag == 0){
+        uint8_t buf[FILENAME_SIZE];
+        copy_string(buf, command, command_length);
+        buf[command_length] = '\0';
+        fname = buf;
+        int connor = 0;
+
+    }
+
 
     /*  2. Executable Check   --- WORKS
           - check if file is an executable
@@ -124,8 +163,6 @@ int32_t execute(const uint8_t* command) {
               -> first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
               -> entry point bytes 24-27
     */
-    printf("%s \n",fname);
-
     dentry_t dentry;
     if (read_dentry_by_name(fname, &dentry) < 0) {
           sti();
@@ -142,7 +179,6 @@ int32_t execute(const uint8_t* command) {
         sti();
         return -1;
     }
-
 
     for (command_idx = 0; command_idx < 4; command_idx++) {
         if (ex_buf[command_idx] != executable_check[command_idx]) {
@@ -161,12 +197,7 @@ int32_t execute(const uint8_t* command) {
     //     sti();
     //     return -1;
     // }
-    printf("EXBuf \n");
-    int elliot;
-    for(elliot = 0; elliot < 4; elliot++) {
-      printf("%x \n", ex_buf[elliot]);
-    }
-    putc('\n');
+
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
 
@@ -193,15 +224,16 @@ int32_t execute(const uint8_t* command) {
               -> reload a control register (CR3?)
               -> after initializing a new page
 */
-
      inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
     // if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0) {
     //     sti();
     //     return -1;
     // }
-    int result = read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length);
-    printf("%d \n", result);
-    printf("%d \n", inode->length);
+    if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0){
+        sti();
+        return -1;
+    }
+
     /* Flush TLB by writing to CR3 */
     flushTLB();
 
@@ -216,12 +248,28 @@ int32_t execute(const uint8_t* command) {
                 -> above previous process kernel stack
             -> ... so on
     */
-    pcb_t* pcb_new = create_new_pcb(process_num);
-    printf("After new_pcb \n");
-    /* Copy arguments into pcb */
-    copy_string(pcb_new->args, args, arg_buf_len);
-    printf("After copy string \n");
+    pcb_t * pcb_new = create_new_pcb(process_num);
+    pcb_processes[process_num] = pcb_new;
+    pcb_processes[process_num]->in_use = 1;
+    int index = 0;
+    int parent_flag = 0;
+    for (; index < NUM_OF_PROCESSES; index++){
+        if (pcb_processes[index] != 0x0){
+            if (pcb_processes[index]->in_use == 1){
+                pcb_new->parent_pcb = pcb_processes[index];
+                pcb_processes[index]->in_use = 0;
+                parent_flag = 1;
+              }
+          }
 
+    }
+
+
+    /* Copy arguments into pcb */
+    if (space_flag == 1){
+      copy_string(pcb_new->args, args, arg_buf_len);
+
+    }
     /*
       6. context switch
           - change priviledge level
@@ -281,28 +329,41 @@ int32_t execute(const uint8_t* command) {
                     pushl %0                \n\
                     iret                    \n\
                     addl $20, %%esp         \n\
+                    END_OF_EXECUTE:         \n\
+                    leave                   \n\
+                    ret                     \n\
                     "
                     :                 // (no) ouput
                     : "r"(entry_point), "r"(user_stack_pointer)
                     : "eax","edx"    // clobbered register
                   );
     sti();
+
+    /* Copy arguments into pcb */
     printf("End of Execute \n");
     return 0; //shouldn't get this far
 }
 
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     /* Check for invalid index */
+    int i;
+    for (i =0 ; i < 8; i++){
+        if (pcb_processes[i] != 0x0){
+          if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
+
+        }
+    }
+    return Terminal_Read(buf, nbytes);
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return -1;
-
     /* Check file position */
     fd_t file_desc = pcb->file_array[fd];
     inode_t* inode = (inode_t*)(boot_block + file_desc.inode + 1);
     /* Return 0 if we've reached the end of the file */
+
     if (file_desc.file_pos >= inode->length)
         return 0;
-
+    printf("Just before the return\n");
     /* Make the correct read call for file type */
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
@@ -311,7 +372,6 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
   // printf("Made it to write");
   // printf("Made it to write 2");
   //Terminal_Write(buf, nbytes);
-  printf("%d Num Bytes: \n", nbytes);
   int x;
   for(x = 0; x < nbytes; x++)
   {
@@ -323,6 +383,12 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 
 int32_t open(const uint8_t* filename) {
     dentry_t dentry;
+    int i;
+    for (i =0 ; i < NUM_OF_PROCESSES; i++){
+        if (pcb_processes[i] != 0x0){
+          if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
+        }
+    }
     if (read_dentry_by_name(filename, &dentry) < 0) /* causes warning here?? */
         return -1;
 
