@@ -24,6 +24,7 @@ pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
 
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
 fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
+fotp_t key_funcs = {Terminal_Open, Terminal_Close, Terminal_Read, Terminal_Write}; //GET ERROR
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
@@ -56,6 +57,13 @@ pcb_t* create_new_pcb(int32_t process_num) {
       new_pcb->file_array[fa_index].inode = -1;
       new_pcb->file_array[fa_index].file_pos = 0;
     }
+    for (fa_index = 0; fa_index < 2; fa_index++){
+      new_pcb->file_array[fa_index].flags = 1;
+      new_pcb->file_array[fa_index].inode = 0;
+      new_pcb->file_array[fa_index].file_pos = 0;
+      new_pcb->file_array[fa_index].file_ops_table_ptr = key_funcs;
+
+    }
 
     new_pcb->parent_pcb = 0x0;
 
@@ -67,7 +75,6 @@ pcb_t* create_new_pcb(int32_t process_num) {
 // void set
 
 int32_t halt(uint8_t status) {
-
     /*
       1. Restore parent data
         - parent process number (most important)
@@ -87,7 +94,7 @@ int32_t halt(uint8_t status) {
         if (pcb_processes[index] != 0x0){
           if (pcb_processes[index]->in_use == 1){
               current_num = pcb_processes[index]->process_num;
-              pcb_rent = pcb_processes[index]->parent_pcb;
+              pcb_rent = (pcb_t *)pcb_processes[index]->parent_pcb;
 
               pcb_processes[index]->in_use = 0;
               break;
@@ -95,11 +102,7 @@ int32_t halt(uint8_t status) {
         }
     }
     pcb_rent->in_use = 1;
-    asm volatile ("                         \n\
-                    jmp END_OF_EXECUTE      \n\
-                    "
-                    :                 // (no) ouput
-                  );
+
 
 /*
       2. Restore parent paging
@@ -111,7 +114,22 @@ int32_t halt(uint8_t status) {
 
     */
 
-    return -1;
+    //3
+    int i;
+    for (i = 2; i < 8; i++){
+        (void)pcb_processes[current_num]->file_array[i].file_ops_table_ptr.close;
+    }
+    //4
+
+    printf("before small boi\n");
+
+    asm volatile ("                         \n\
+                    jmp END_OF_EXECUTE      \n\
+                    "
+                    :                 // (no) ouput
+                  );
+
+    return 0;
 }
 
 int32_t execute(const uint8_t* command) {
@@ -150,8 +168,6 @@ int32_t execute(const uint8_t* command) {
         copy_string(buf, command, command_length);
         buf[command_length] = '\0';
         fname = buf;
-        int connor = 0;
-
     }
 
 
@@ -254,9 +270,9 @@ int32_t execute(const uint8_t* command) {
     int index = 0;
     int parent_flag = 0;
     for (; index < NUM_OF_PROCESSES; index++){
-        if (pcb_processes[index] != 0x0){
+        if (pcb_processes[index] != 0x0 && index != process_num){
             if (pcb_processes[index]->in_use == 1){
-                pcb_new->parent_pcb = pcb_processes[index];
+                pcb_new->parent_pcb = (int32_t)pcb_processes[index];
                 pcb_processes[index]->in_use = 0;
                 parent_flag = 1;
               }
@@ -294,25 +310,26 @@ int32_t execute(const uint8_t* command) {
     printf("%x \n", tss.ss0);
     printf("%x \n", user_stack_pointer);
     printf("%x \n", entry_point);
-/* redid this but keeping this column
-  push USER_DS, ESP, EFLAG, USER_CS, EIP
-  put USER_DS in DS and stack (2B)
-  push ESP
-  push Flags
-  put USER_CS in CS and stack (23)
-  put calculated entry point onto stack (EIP)
-  put calculated physical address in SS
-*/
+    /* redid this but keeping this column
+      push USER_DS, ESP, EFLAG, USER_CS, EIP
+      put USER_DS in DS and stack (2B)
+      push ESP
+      push Flags
+      put USER_CS in CS and stack (23)
+      put calculated entry point onto stack (EIP)
+      put calculated physical address in SS
+    */
     //order should be correct. Only moving into ax instead of eax. instead of esp, should be
     //the user stack pointer variable which is the sum of the virtual address and page size,
     //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
     //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
     //it needs the return address that execute has. Call END_OF_EXECUTE in halt
 
+    /*
     // END_OF_EXECUTE:         \n\
     // leave                   \n\
     // ret                     \n\
-
+      */
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -347,13 +364,12 @@ int32_t execute(const uint8_t* command) {
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     /* Check for invalid index */
     int i;
-    for (i =0 ; i < 8; i++){
+    for (i = 0 ; i < 8; i++){
         if (pcb_processes[i] != 0x0){
           if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
-
         }
     }
-    return Terminal_Read(0,buf, nbytes);
+    //return Terminal_Read(0,buf, nbytes);
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return -1;
     /* Check file position */
@@ -361,23 +377,38 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     inode_t* inode = (inode_t*)(boot_block + file_desc.inode + 1);
     /* Return 0 if we've reached the end of the file */
 
-    if (file_desc.file_pos >= inode->length)
+
+    if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
-    printf("Just before the return\n");
     /* Make the correct read call for file type */
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
+  /*
   int bytes = nbytes;
-  Terminal_Write(0,buf, bytes);
-  int x;
+  printf("bytes = %d\n", bytes);
+  Terminal_Write(0, buf, bytes);
+  */
   // for(x = 0; x < nbytes; x++)
   // {
   //   putc( ((char *)buf)[x]);
   // }
   //printf((char*)buf);
-    return -1;
+  int i;
+  for (i =0 ; i < 8; i++){
+      if (pcb_processes[i] != 0x0){
+        if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
+      }
+  }
+  // Terminal_Read(0,buf, nbytes);
+  if (fd < 0 || fd >= FILE_ARRAY_SIZE)
+      return -1;
+  /* Check file position */
+  fd_t file_desc = pcb->file_array[fd];
+  /* Return 0 if we've reached the end of the file */
+  /* Make the correct read call for file type */
+  return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
 }
 
 int32_t open(const uint8_t* filename) {
@@ -438,8 +469,15 @@ int32_t open(const uint8_t* filename) {
 int32_t close(int32_t fd) {
     if (fd < 2 || fd >= FILE_ARRAY_SIZE)
         return -1;
+    int i;
+    for (i =0 ; i < 8; i++){
+        if (pcb_processes[i] != 0x0){
+          if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
 
+        }
+    }
     pcb->file_array[fd].flags = 0;
+    return pcb->file_array[fd].file_ops_table_ptr.close(fd);
     return 0;
 }
 

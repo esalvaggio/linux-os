@@ -6,6 +6,7 @@
 #include "fs_setup.h"
 #include "./devices/keyboard.h"
 #include "sys_calls.h"
+#include "paging.h"
 
 
 #define PASS 1
@@ -327,15 +328,13 @@ void linkage_test() {
 void execute_test(){
 	//uint8_t shell[6] = "shell ";
 	TEST_HEADER;
-	int8_t * shell = "shell";
-	int8_t * testPrint = "testprint";
-	int fail;
- 	int8_t * ls = "ls ";
-	char b[128] = "";
+	uint8_t * testPrint = (uint8_t *)"testprint";
+
 
 	//int readResult = Terminal_Read(b,128);
  //int8_t * cat = "cat ";
-	 execute(testPrint);
+	execute(testPrint);
+	/*
 // 	asm volatile ("								\n\
 // 								movl $2, %%eax	\n\
 // 							  movl %0, %%ebx  \n\
@@ -345,10 +344,8 @@ void execute_test(){
 // 								:	"r"(testPrint)
 // 								: "eax" , "ebx"
 // 							);
-//
+//*/
  printf("Success");
-return PASS;
-
 }
 
 /* Checkpoint 4 tests */

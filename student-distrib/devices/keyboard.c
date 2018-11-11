@@ -227,33 +227,33 @@ enter_flag = 0;
 */
 int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 {
-int enter_found = 0;
+// int enter_found = 0;
+// int x;
+// for(x = 0; x < nbytes; x++)
+// {
+//   if(((char *)buf)[x] == '\n' )
+//   {
+//     enter_found = 1;
+//   }
+// }
+
+// if(old_index != 0)
+// {
+//   if(buf == NULL || nbytes < 0) //invalid input
+//   {
+//     return FAILURE;
+//   }
+//   if(nbytes > BUFFER_LENGTH) //if they try to read more than in the buffer, set the num bytes to where enter is
+//   {
+//     nbytes = old_index;
+//   }
+//
+//   else if(nbytes > old_index) //if they try to read more than in the buffer, set the num bytes to where enter is
+//   {
+//     nbytes = old_index;
+//   }
+// }
 int x;
-for(x = 0; x < nbytes; x++)
-{
-  if(((char *)buf)[x] == '\n' )
-  {
-    enter_found = 1;
-  }
-}
-
-if(old_index != 0 && enter_found == 1)
-{
-  if(buf == NULL || nbytes < 0) //invalid input
-  {
-    return FAILURE;
-  }
-  if(nbytes > BUFFER_LENGTH) //if they try to read more than in the buffer, set the num bytes to where enter is
-  {
-    nbytes = old_index;
-  }
-
-  else if(nbytes > old_index) //if they try to read more than in the buffer, set the num bytes to where enter is
-  {
-    nbytes = old_index;
-  }
-}
-
   for(x = 0; x < nbytes; x++)
   {
     printf("%c", ((char *)buf)[x]); //print
