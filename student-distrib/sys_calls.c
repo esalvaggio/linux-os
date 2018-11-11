@@ -19,12 +19,18 @@
 #define ADDR_8KB      0x002000
 #define ADDR_4KB      0x001000
 #define FILE_ENTRY  0x08048000
+#define DYNAMIC_FILE_START   2
+#define ENTRY_POINT         24
+#define ENTRY_POINT_END     28
+#define SUCCESS              0
+#define ERROR               -1
 pcb_t* pcb;
 pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
+//Arrays for file operations pointer table
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
 fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
-fotp_t key_funcs = {Terminal_Open, Terminal_Close, Terminal_Read, Terminal_Write}; //GET ERROR
+fotp_t key_funcs = {Terminal_Open, Terminal_Close, Terminal_Read, Terminal_Write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
@@ -40,7 +46,7 @@ int32_t find_new_process() {
     }
 
     /* No pcb's open */
-    return -1;
+    return ERROR;
 }
 
 pcb_t* create_new_pcb(int32_t process_num) {
@@ -51,13 +57,13 @@ pcb_t* create_new_pcb(int32_t process_num) {
     new_pcb->mem_addr_start = ADDR_8MB - (process_num+1)*ADDR_8KB;
 
     int fa_index;
-    for (fa_index = 2; fa_index < FILE_ARRAY_SIZE; fa_index++) {
+    for (fa_index = DYNAMIC_FILE_START; fa_index < FILE_ARRAY_SIZE; fa_index++){
       /* Initialize each location in file array to unused */
       new_pcb->file_array[fa_index].flags = 0;
       new_pcb->file_array[fa_index].inode = -1;
       new_pcb->file_array[fa_index].file_pos = 0;
     }
-    for (fa_index = 0; fa_index < 2; fa_index++){
+    for (fa_index = 0; fa_index < DYNAMIC_FILE_START; fa_index++){
       new_pcb->file_array[fa_index].flags = 1;
       new_pcb->file_array[fa_index].inode = 0;
       new_pcb->file_array[fa_index].file_pos = 0;
@@ -118,7 +124,7 @@ int32_t halt(uint8_t status) {
             - flush TLB!
     */
     //uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
-    page_dir_init(0x08000000, ADDR_8MB); //set the paging back to 8MB
+    page_dir_init(VIRTUAL_ADDRESS, ADDR_8MB); //set the paging back to 8MB
       /*
       3. Clear all file descriptors
         - calling close()
@@ -128,9 +134,10 @@ int32_t halt(uint8_t status) {
 
     //3
     int i;
-    for (i = 2; i < 8; i++){
+    for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
         (void)pcb_processes[current_num]->file_array[i].file_ops_table_ptr.close;
     }
+    //pcb_processes[current_num] = 0x0;
     //4
 
     //We need to somehow return to the parent esp/ebp that should be saved in the pcb structure
@@ -138,7 +145,8 @@ int32_t halt(uint8_t status) {
     tss.esp0 = pcb_processes[old_num]->esp0;
     tss.ss0 = pcb_processes[old_num]->ss0; //kernel stack segment = kernel_DS
 
-
+    int32_t old_ebp = pcb_processes[current_num]->ebp;
+    pcb_processes[current_num] = 0x0;
 
     asm volatile ("                         \n\
                     movl %0, %%EBP          \n\
@@ -146,14 +154,20 @@ int32_t halt(uint8_t status) {
                     jmp END_OF_EXECUTE      \n\
                     "
                     :
-                    : "r"(pcb_processes[current_num]->ebp)               // (no) ouput
+                    : "r"(old_ebp)               // (no) ouput
                   );
 
-    return 0;
+    return SUCCESS;
 }
 
 int32_t execute(const uint8_t* command) {
     cli();
+
+    if(command == NULL)
+    {
+      return ERROR;
+    }
+        cli();
     /* Instructions
       1. Parse  --- WORKS
           - command: ["filename" + " " + "string of args"]
@@ -202,37 +216,28 @@ int32_t execute(const uint8_t* command) {
     dentry_t dentry;
     if (read_dentry_by_name(fname, &dentry) < 0) {
           sti();
-          return -1;
+          return ERROR;
     }
 
-    // int8_t ex_buf[4];
-    // if (read_data(dentry.inode_num, 0, ex_buf, 4) < 0) {
-    //     sti();
-    //     return -1;
-    // }
-    int8_t ex_buf[4];
-    if (read_data(dentry.inode_num, 0, ex_buf, 4) < 4) {
+    int8_t ex_buf[EXEC_CHECK_CHARS];
+    if (read_data(dentry.inode_num, 0, ex_buf, EXEC_CHECK_CHARS) < EXEC_CHECK_CHARS) {
         sti();
-        return -1;
+        return ERROR;
     }
 
-    for (command_idx = 0; command_idx < 4; command_idx++) {
+    for (command_idx = 0; command_idx < EXEC_CHECK_CHARS; command_idx++) {
         if (ex_buf[command_idx] != executable_check[command_idx]) {
             sti();
-            return -1;
+            return ERROR;
         }
     }
 
     /* get entry point from bytes 24-27 */
-    if (read_data(dentry.inode_num, 24, ex_buf, 28) < 0) {
+    if (read_data(dentry.inode_num, ENTRY_POINT, ex_buf, ENTRY_POINT_END) < 0) {
         sti();
-        return -1;
+        return ERROR;
     }
 
-    // if (read_data(dentry.inode_num, 24, ex_buf, 4) < 0) {
-    //     sti();
-    //     return -1;
-    // }
 
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
@@ -243,9 +248,7 @@ int32_t execute(const uint8_t* command) {
       3. Paging
           - each process gets its own 4 MB page */
     uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
-    page_dir_init(0x08000000, phys_addr);
-          // page_dir_init(0x08000000, 0x0800000); //8mb phys addr user level shell
-          // page_dir_init(0x08000000, 0x0C00000); //12mb stuff
+    page_dir_init(VIRTUAL_ADDRESS, phys_addr);
 
 
 /*
@@ -261,13 +264,10 @@ int32_t execute(const uint8_t* command) {
               -> after initializing a new page
 */
      inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
-    // if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0) {
-    //     sti();
-    //     return -1;
-    // }
+
     if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0){
         sti();
-        return -1;
+        return ERROR;
     }
 
     /* Flush TLB by writing to CR3 */
@@ -323,45 +323,26 @@ int32_t execute(const uint8_t* command) {
     */
 
     //tss.esp0 = pcb_new->mem_addr_start + FOUR_BYTE_ADDR; //8MB - 8KB(process#) - 4 (address length)
-    tss.esp0 = 0x800000 - 0x2000*(process_num) - 4;
+    tss.esp0 = ADDR_8MB - ADDR_8KB*(process_num) - FOUR_BYTE_ADDR;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
     pcb_processes[process_num]->esp0 = tss.esp0;
     pcb_processes[process_num]->ss0 = tss.ss0;
 
-
-    // printf("%x \n", tss.esp0);
-    // printf("%x \n", tss.ss0);
-    // printf("%x \n", user_stack_pointer);
-    // printf("%x \n", entry_point);
-    /* redid this but keeping this column
-      push USER_DS, ESP, EFLAG, USER_CS, EIP
-      put USER_DS in DS and stack (2B)
-      push ESP
-      push Flags
-      put USER_CS in CS and stack (23)
-      put calculated entry point onto stack (EIP)
-      put calculated physical address in SS
-    */
-    //order should be correct. Only moving into ax instead of eax. instead of esp, should be
-    //the user stack pointer variable which is the sum of the virtual address and page size,
-    //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
-    //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
-    //it needs the return address that execute has. Call END_OF_EXECUTE in halt
-
-uint32_t curr_ebp;
-// uint32_t curr_esp;
-//
-// //we need to save the esp/ebp of each respective program
-asm volatile("                              \n\
-              movl %%ebp, %0             \n\
-              "
-            : "=r"(curr_ebp)
-          );
-
-// pcb_new->esp = curr_esp;
+    uint32_t curr_ebp;
+    asm volatile("                           \n\
+                  movl %%ebp, %0             \n\
+                  "
+                  : "=r"(curr_ebp)
+                );
   pcb_new->ebp = curr_ebp;
-  printf("EBP: %x\n", curr_ebp);
+
+  //order should be correct. Only moving into ax instead of eax. instead of esp, should be
+  //the user stack pointer variable which is the sum of the virtual address and page size,
+  //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
+  //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
+  //it needs the return address that execute has. Call END_OF_EXECUTE in halt
+
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -386,51 +367,43 @@ asm volatile("                              \n\
                     : "r"(entry_point), "r"(user_stack_pointer)
                     : "eax","edx"    // clobbered register
                   );
-    sti();
-
-    /* Copy arguments into pcb */
-    printf("End of Execute \n");
-    return 0; //shouldn't get this far
+    return SUCCESS; //shouldn't get this far
 }
 
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     /* Check for invalid index */
     int i;
-    for (i = 0 ; i < 8; i++){
+    for (i = 0 ; i < NUM_OF_PROCESSES; i++){
         if (pcb_processes[i] != 0x0){
           if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
         }
     }
     //return Terminal_Read(0,buf, nbytes);
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
-        return -1;
+        return ERROR;
     /* Check file position */
     fd_t file_desc = pcb->file_array[fd];
-    printf("Inode: %d\n", file_desc.inode);
     inode_t* inode = (inode_t*)(boot_block + file_desc.inode);
     /* Return 0 if we've reached the end of the file */
 
-    printf("Before If \n");
-    printf("File Pos: %d \n", file_desc.file_pos);
-    printf("Inode Length: %d \n", inode->length);
+
     if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
     /* Make the correct read call for file type */
-    printf("Return \n");
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 
   int i;
-  for (i =0 ; i < 8; i++){
+  for (i =0 ; i < NUM_OF_PROCESSES; i++){
       if (pcb_processes[i] != 0x0){
         if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
       }
   }
   // Terminal_Read(0,buf, nbytes);
   if (fd < 0 || fd >= FILE_ARRAY_SIZE)
-      return -1;
+      return ERROR;
   /* Check file position */
   fd_t file_desc = pcb->file_array[fd];
   /* Return 0 if we've reached the end of the file */
@@ -447,16 +420,16 @@ int32_t open(const uint8_t* filename) {
         }
     }
     if (read_dentry_by_name(filename, &dentry) < 0) /* causes warning here?? */
-        return -1;
+        return ERROR;
 
     int fa_index;
-    int32_t fd = 6;
-    for (fa_index = 2; fa_index < FILENAME_SIZE; fa_index++) {
+    int32_t fd;
+    for (fa_index = DYNAMIC_FILE_START; fa_index < FILENAME_SIZE; fa_index++) {
         /* Find the next open location in file array */
         fd_t file_desc = pcb->file_array[fa_index];
         if (file_desc.flags != 1) {
             /* Inode is 0 for non-data files */
-            if (dentry.filetype == 2) {
+            if (dentry.filetype == REG_FILETYPE) {
                 file_desc.inode = dentry.inode_num;
             } else {
                 file_desc.inode = 0;
@@ -489,14 +462,14 @@ int32_t open(const uint8_t* filename) {
         }
     }
     /* There are no open locations in the file array */
-    return -1;
+    return ERROR;
 }
 
 int32_t close(int32_t fd) {
-    if (fd < 2 || fd >= FILE_ARRAY_SIZE)
-        return -1;
+    if (fd < DYNAMIC_FILE_START || fd >= FILE_ARRAY_SIZE)
+        return ERROR;
     int i;
-    for (i =0 ; i < 8; i++){
+    for (i =0 ; i < NUM_OF_PROCESSES; i++){
         if (pcb_processes[i] != 0x0){
           if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
 
@@ -504,21 +477,21 @@ int32_t close(int32_t fd) {
     }
     pcb->file_array[fd].flags = 0;
     return pcb->file_array[fd].file_ops_table_ptr.close(fd);
-    return 0;
+    return SUCCESS;
 }
 
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
-    return -1;
+    return ERROR;
 }
 
 int32_t vidmap(uint8_t** screen_start) {
-    return -1;
+    return ERROR;
 }
 
 int32_t set_handler(int32_t signum, void* handler_address) {
-    return -1;
+    return ERROR;
 }
 
 int32_t sigreturn(void) {
-    return -1;
+    return ERROR;
 }

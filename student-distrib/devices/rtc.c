@@ -63,7 +63,7 @@ void RTC_Handler(){
 
 /* RTC_write
  *
- * Inputs: NBYTES is the new rate to set into the rtc in Hz.
+ * Inputs: buf is the pointer to the new rate to set into the rtc in Hz.
  *         Accepatable values are:
  *         2, 4, 8, 16, 32, 64, 128, 256, 502, 1024
  * Outputs: 0 on success, -1 on failure (bad input)
@@ -74,7 +74,9 @@ void RTC_Handler(){
 */
 int32_t RTC_write(int32_t fd, const void* buf, int32_t nbytes){
   char prev;
-  int power = power_of_two(nbytes);
+  if (buf == 0x0) return ERROR;
+  int32_t freq = *(int32_t *)buf;
+  int power = power_of_two(freq);
   if (power < LOW_RATE || power > HI_RATE)return ERROR;
 
   power = 16-power; //calculate the proper bits to write to rtc
@@ -113,7 +115,8 @@ int32_t power_of_two(int32_t input){
  * Side effects: changes rtc frequency to 2Hz
 */
 int32_t RTC_open(const uint8_t* filename){
-    RTC_write(0, NULL, 2);
+    int32_t freq = 2;
+    RTC_write(0, &freq , 4);
     return SUCCESS;
 }
 

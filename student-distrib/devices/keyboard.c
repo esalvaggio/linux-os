@@ -188,7 +188,7 @@ int32_t Terminal_Close(int32_t fd)
 * This function waits for enter to be pressed, then reads the desired number of chars from the text buffer
 * into the provided buffer. It returns the number of bytes read
 */
-int32_t Terminal_Read(int32_t fd, const void * buf, int32_t nbytes)
+int32_t Terminal_Read(int32_t fd, void * buf, int32_t nbytes)
 {
 
 if(buf == NULL || nbytes < 0) //invalid input

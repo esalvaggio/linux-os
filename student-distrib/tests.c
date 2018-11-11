@@ -129,10 +129,10 @@ int change_frequency_test(){
 		}
 
 
-		if (RTC_write(0, NULL, frequencies[counter]) == 0){ //returns success
+		if (RTC_write(0, &frequencies[counter], 4) == 0){ //returns success
 			no_interrupts = frequencies[counter] * 2;
 			for (;no_interrupts>=0;no_interrupts--){
-				RTC_read(0, NULL,0);
+				RTC_read(0, NULL ,0);
 				clear();
 				update_cursor(0,0);
 				printf("interrupt: %d", no_interrupts);
@@ -333,16 +333,17 @@ int execute_test_print_test(){
 
 	execute(testPrint);
 
-	// asm volatile ("								\n\
-	// 							movl $2, %%eax	\n\
-	// 						  movl %0, %%ebx  \n\
-	// 							int $0x80				\n\
-	// 							"
-	// 							:
-	// 							:	"r"(testPrint)
-	// 							: "eax" , "ebx"
-	// 						);
-
+/*
+	asm volatile ("								\n\
+								movl $2, %%eax	\n\
+							  movl %0, %%ebx  \n\
+								int $0x80				\n\
+								"
+								:
+								:	"r"(testPrint)
+								: "eax" , "ebx"
+							);
+*/
  return PASS;
 }
 
@@ -352,6 +353,7 @@ int execute_hello_test()
 	uint8_t * hello = (uint8_t *)"hello";
 	execute(hello);
 
+/*
 	asm volatile ("								\n\
 								movl $2, %%eax	\n\
 								movl %0, %%ebx  \n\
@@ -361,7 +363,9 @@ int execute_hello_test()
 								:	"r"(hello)
 								: "eax" , "ebx"
 							);
+*/							
 			return PASS;
+
 }
 
 
@@ -379,7 +383,7 @@ void launch_tests(){
 	/* to test RTC, go to rtc.c */
 
 	/* Checkpoint 2 tests */
-	//TEST_OUTPUT("Change frequency", change_frequency_test());
+	TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
 	//TEST_OUTPUT("TEST_Terminal", terminal_test());
 	// TEST_OUTPUT("File System: Text File test", file_system_test_1());
@@ -391,7 +395,7 @@ void launch_tests(){
 
 	/* Checkpoint 3 tests */
 	// linkage_test();
-	 execute_test_print_test();
+	 //execute_test_print_test();
 	 //execute_hello_test();
 
 }
