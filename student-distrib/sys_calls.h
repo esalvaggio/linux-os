@@ -47,6 +47,8 @@ typedef struct pcb {
     uint8_t* args;
     int8_t process_num;
     int8_t in_use;
+    int32_t esp;
+    int32_t ebp;
     // add more good stuff
 } pcb_t;
 

@@ -87,27 +87,37 @@ int32_t halt(uint8_t status) {
           WHO KNOWS
 
           */
+          printf("Made it to Halt \n");
     int index;
-    int current_num;
+    int current_num = 0;
     pcb_t * pcb_rent;
     for (index = 0; index < NUM_OF_PROCESSES; index++){
         if (pcb_processes[index] != 0x0){
           if (pcb_processes[index]->in_use == 1){
+
+            if(index == 0) //first process does not have a parent so skip parent stuff
+            {
+              break;
+            }
               current_num = pcb_processes[index]->process_num;
               pcb_rent = (pcb_t *)pcb_processes[index]->parent_pcb;
 
               pcb_processes[index]->in_use = 0;
+                pcb_rent->in_use = 1;
               break;
           }
         }
     }
-    pcb_rent->in_use = 1;
 
-
+    printf("After PCB stuff \n");
 /*
       2. Restore parent paging
         - similar to how we set up paging in execute()
         - flush TLB!
+*/
+uint32_t phys_addr = ADDR_8MB + (current_num * ADDR_4MB);
+page_dir_init(0x08000000, phys_addr); //set the paging back to 8MB
+/*
       3. Clear all file descriptors
         - calling close()
       4. Jump back to parent process
@@ -120,6 +130,10 @@ int32_t halt(uint8_t status) {
         (void)pcb_processes[current_num]->file_array[i].file_ops_table_ptr.close;
     }
     //4
+
+//We need to somehow return to the parent esp/ebp that should be saved in the pcb structure
+//Not really sure what to do with them
+
 
     printf("before small boi\n");
 
@@ -306,10 +320,10 @@ int32_t execute(const uint8_t* command) {
     tss.esp0 = 0x800000 - 0x2000*(process_num) - 4;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
-    printf("%x \n", tss.esp0);
-    printf("%x \n", tss.ss0);
-    printf("%x \n", user_stack_pointer);
-    printf("%x \n", entry_point);
+    // printf("%x \n", tss.esp0);
+    // printf("%x \n", tss.ss0);
+    // printf("%x \n", user_stack_pointer);
+    // printf("%x \n", entry_point);
     /* redid this but keeping this column
       push USER_DS, ESP, EFLAG, USER_CS, EIP
       put USER_DS in DS and stack (2B)
@@ -325,11 +339,19 @@ int32_t execute(const uint8_t* command) {
     //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
     //it needs the return address that execute has. Call END_OF_EXECUTE in halt
 
-    /*
-    // END_OF_EXECUTE:         \n\
-    // leave                   \n\
-    // ret                     \n\
-      */
+// uint32_t curr_ebp;
+// uint32_t curr_esp;
+//
+// //we need to save the esp/ebp of each respective program
+// asm volatile("movl %%esp, %%eax             \n\
+//               movl %%ebp, %%ebx             \n\
+//               "
+//             : "=r"(curr_ebp), "=r"(curr_esp)
+//           );
+//
+//   pcb_new->esp = curr_esp;
+//   pcb_new->ebp = curr_ebp;
+
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -377,7 +399,6 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     inode_t* inode = (inode_t*)(boot_block + file_desc.inode + 1);
     /* Return 0 if we've reached the end of the file */
 
-
     if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
     /* Make the correct read call for file type */
@@ -422,6 +443,7 @@ int32_t open(const uint8_t* filename) {
     if (read_dentry_by_name(filename, &dentry) < 0) /* causes warning here?? */
         return -1;
 
+        printf("After read dentry \n");
     int fa_index;
     for (fa_index = 2; fa_index < FILENAME_SIZE; fa_index++) {
         /* Find the next open location in file array */
@@ -438,7 +460,7 @@ int32_t open(const uint8_t* filename) {
             file_desc.flags = 1;
 
             int32_t fd;
-
+            printf("Before Switch \n");
             switch (dentry.filetype)
             {
                 case RTC_FILETYPE:
@@ -458,7 +480,8 @@ int32_t open(const uint8_t* filename) {
                     file_desc.file_ops_table_ptr = file_funcs;
                     break;
             }
-
+            printf("Before Return \n");
+            printf("Index: %d", fa_index);
             return fa_index;
         }
     }

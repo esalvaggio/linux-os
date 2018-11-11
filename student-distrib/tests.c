@@ -325,28 +325,47 @@ void linkage_test() {
 							);
 }
 
-void execute_test(){
+int execute_test_print_test(){
 	//uint8_t shell[6] = "shell ";
 	TEST_HEADER;
 	uint8_t * testPrint = (uint8_t *)"testprint";
 
 
-	//int readResult = Terminal_Read(b,128);
- //int8_t * cat = "cat ";
-	execute(testPrint);
-	/*
-// 	asm volatile ("								\n\
-// 								movl $2, %%eax	\n\
-// 							  movl %0, %%ebx  \n\
-// 								int $0x80				\n\
-// 								"
-// 								:
-// 								:	"r"(testPrint)
-// 								: "eax" , "ebx"
-// 							);
-//*/
- printf("Success");
+	//execute(testPrint);
+
+	asm volatile ("								\n\
+								movl $2, %%eax	\n\
+							  movl %0, %%ebx  \n\
+								int $0x80				\n\
+								"
+								:
+								:	"r"(testPrint)
+								: "eax" , "ebx"
+							);
+
+ return PASS;
 }
+
+int execute_hello_test()
+{
+	TEST_HEADER;
+	uint8_t * hello = (uint8_t *)"hello";
+	execute(hello);
+
+	asm volatile ("								\n\
+								movl $2, %%eax	\n\
+								movl %0, %%ebx  \n\
+								int $0x80				\n\
+								"
+								:
+								:	"r"(hello)
+								: "eax" , "ebx"
+							);
+			return PASS;
+}
+
+
+
 
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
@@ -372,6 +391,7 @@ void launch_tests(){
 
 	/* Checkpoint 3 tests */
 	// linkage_test();
-	 execute_test();
+	 execute_test_print_test();
+	 //execute_hello_test();
 
 }
