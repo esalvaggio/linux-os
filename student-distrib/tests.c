@@ -189,9 +189,9 @@ int terminal_test()
 {
 	TEST_HEADER;
 	char b[128] = ""; //buffer with space for 128 chars as specified,this value needs to be 128 in order to have a buffer with length 128 as specified
-	int readResult = Terminal_Read(b,128);
+	int readResult = Terminal_Read(0,b,128);
 	printf("%d \n", readResult);
-	Terminal_Write(b,128);
+	Terminal_Write(0,b,128);
 	//int writeResult = Terminal_Write(b,5); //if desired you can see the number of chars written as well
 		//printf("%d \n", writeResult);
 	return PASS; //text written and Terminal_Write need to be compared directly to see if correct or not
@@ -327,8 +327,8 @@ void linkage_test() {
 void execute_test(){
 	//uint8_t shell[6] = "shell ";
 	TEST_HEADER;
-	int8_t * shell = "shell ";
-	int8_t * testPrint = "testprint ";
+	int8_t * shell = "shell";
+	int8_t * testPrint = "testprint";
 	int fail;
  	int8_t * ls = "ls ";
 	char b[128] = "";

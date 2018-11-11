@@ -353,7 +353,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 
         }
     }
-    return Terminal_Read(buf, nbytes);
+    return Terminal_Read(0,buf, nbytes);
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return -1;
     /* Check file position */
@@ -369,14 +369,13 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 }
 
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
-  // printf("Made it to write");
-  // printf("Made it to write 2");
-  //Terminal_Write(buf, nbytes);
+  int bytes = nbytes;
+  Terminal_Write(0,buf, bytes);
   int x;
-  for(x = 0; x < nbytes; x++)
-  {
-    putc( ((char *)buf)[x]);
-  }
+  // for(x = 0; x < nbytes; x++)
+  // {
+  //   putc( ((char *)buf)[x]);
+  // }
   //printf((char*)buf);
     return -1;
 }
