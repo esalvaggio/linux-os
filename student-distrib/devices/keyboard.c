@@ -236,7 +236,7 @@ int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 //     enter_found = 1;
 //   }
 // }
-
+//
 // if(old_index != 0)
 // {
 //   if(buf == NULL || nbytes < 0) //invalid input

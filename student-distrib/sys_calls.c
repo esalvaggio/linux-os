@@ -70,12 +70,14 @@ pcb_t* create_new_pcb(int32_t process_num) {
       new_pcb->file_array[fa_index].file_ops_table_ptr = key_funcs;
 
     }
-
+    //Default is no parent
     new_pcb->parent_pcb = 0x0;
 
     return new_pcb;
 }
-
+/*
+ * halt()
+*/
 int32_t halt(uint8_t status) {
     /*
       1. Restore parent data
@@ -100,9 +102,9 @@ int32_t halt(uint8_t status) {
         if (pcb_processes[index] != 0x0){
           if (pcb_processes[index]->in_use == 1){
 
-//first process does not have a parent so skip parent stuff
+              //first process does not have a parent so skip parent stuff
               if(pcb_processes[index]->parent_pcb == 0x0)
-                            {
+                {
                 break;
               }
               current_num = pcb_processes[index]->process_num;
@@ -115,6 +117,7 @@ int32_t halt(uint8_t status) {
         }
     }
 
+
     /*
           2. Restore parent paging
             - similar to how we set up paging in execute()
@@ -122,27 +125,30 @@ int32_t halt(uint8_t status) {
     */
     //uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
     page_dir_init(VIRTUAL_ADDRESS, ADDR_8MB); //set the paging back to 8MB
+
+
       /*
       3. Clear all file descriptors
         - calling close()
       4. Jump back to parent process
-
     */
-
     //3
     int i;
     for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
         (void)pcb_processes[current_num]->file_array[i].file_ops_table_ptr.close;
     }
-    //pcb_processes[current_num] = 0x0;
     //4
-
     //We need to somehow return to the parent esp/ebp that should be saved in the pcb structure
     //Not really sure what to do with them
     tss.esp0 = pcb_processes[old_num]->esp0;
     tss.ss0 = pcb_processes[old_num]->ss0; //kernel stack segment = kernel_DS
 
+    /*
+     * We need to restore the previous ebp (entering EXECUTE) in order to return
+    */
     int32_t old_ebp = pcb_processes[current_num]->ebp;
+
+    //Finally, Clear pcb_processes[current_num]
     pcb_processes[current_num] = 0x0;
 
     asm volatile ("                         \n\
@@ -153,20 +159,22 @@ int32_t halt(uint8_t status) {
                     :
                     : "r"(old_ebp)               // (no) ouput
                   );
-
-    return SUCCESS;
+    //Will never reach, need to include regardless
+    return ERROR;
 }
+/*
 
+*/
 int32_t execute(const uint8_t* command) {
-    cli();
+
 
     if(command == NULL)
     {
       return ERROR;
     }
-        cli();
+    cli();
     /* Instructions
-      1. Parse  --- WORKS
+      1. Parse  ---
           - command: ["filename" + " " + "string of args"]
     */
     int32_t command_idx, arg_buf_len;
@@ -194,6 +202,7 @@ int32_t execute(const uint8_t* command) {
         }
 
     }
+    //special case if there is no space breaking up arguments
     if (space_flag == 0){
         uint8_t buf[FILENAME_SIZE];
         copy_string(buf, command, command_length);
@@ -202,7 +211,7 @@ int32_t execute(const uint8_t* command) {
     }
 
 
-    /*  2. Executable Check   --- WORKS
+    /*  2. Executable Check   ---
           - check if file is an executable
             -> read dentry
             -> get data of file, check for "\dELF"
@@ -216,12 +225,13 @@ int32_t execute(const uint8_t* command) {
           return ERROR;
     }
 
+    //ex_buf stores first 4 bytes to check it is a valid command
     int8_t ex_buf[EXEC_CHECK_CHARS];
     if (read_data(dentry.inode_num, 0, ex_buf, EXEC_CHECK_CHARS) < EXEC_CHECK_CHARS) {
         sti();
         return ERROR;
     }
-
+    //Make sure entered buffer is a valid command - first 4 bytes certain chars
     for (command_idx = 0; command_idx < EXEC_CHECK_CHARS; command_idx++) {
         if (ex_buf[command_idx] != executable_check[command_idx]) {
             sti();
@@ -239,6 +249,7 @@ int32_t execute(const uint8_t* command) {
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
 
+    //Find new process index
     int32_t process_num = find_new_process();
 
     /*
@@ -248,7 +259,7 @@ int32_t execute(const uint8_t* command) {
     page_dir_init(VIRTUAL_ADDRESS, phys_addr);
 
 
-/*
+    /*
       4. User-level program loader
           - call to read_data
           - comes after paging!
@@ -259,8 +270,8 @@ int32_t execute(const uint8_t* command) {
           - flush TLB
               -> reload a control register (CR3?)
               -> after initializing a new page
-*/
-     inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
+    */
+    inode_t* inode = (inode_t*)(boot_block + dentry.inode_num + 1);
 
     if (read_data(dentry.inode_num, 0, (int8_t*)FILE_ENTRY, inode->length) < 0){
         sti();
@@ -283,19 +294,24 @@ int32_t execute(const uint8_t* command) {
     */
     pcb_t * pcb_new = create_new_pcb(process_num);
     pcb_processes[process_num] = pcb_new;
-    pcb_processes[process_num]->in_use = 1;
+    /* First, check if there is a process running already. Because we are
+    only running one shell, the running process is the parent of the process
+    being called right now. If no processes are found, now parent exists
+    */
     int index = 0;
-    int parent_flag = 0;
     for (; index < NUM_OF_PROCESSES; index++){
-        if (pcb_processes[index] != 0x0 && index != process_num){
+
+        if (pcb_processes[index] != 0x0){
             if (pcb_processes[index]->in_use == 1){
                 pcb_new->parent_pcb = (int32_t)pcb_processes[index];
                 pcb_processes[index]->in_use = 0;
-                parent_flag = 1;
+                break;
               }
           }
 
     }
+    pcb_processes[process_num]->in_use = 1;
+
 
 
     /* Copy arguments into pcb */
@@ -326,13 +342,15 @@ int32_t execute(const uint8_t* command) {
     pcb_processes[process_num]->esp0 = tss.esp0;
     pcb_processes[process_num]->ss0 = tss.ss0;
 
+    //Next few lines save current ebp into the process control block.
+    // This is needed when we eventually jump back to this function + return
     uint32_t curr_ebp;
     asm volatile("                           \n\
                   movl %%ebp, %0             \n\
                   "
                   : "=r"(curr_ebp)
                 );
-  pcb_new->ebp = curr_ebp;
+   pcb_new->ebp = curr_ebp;
 
   //order should be correct. Only moving into ax instead of eax. instead of esp, should be
   //the user stack pointer variable which is the sum of the virtual address and page size,
@@ -366,61 +384,96 @@ int32_t execute(const uint8_t* command) {
                   );
     return SUCCESS; //shouldn't get this far
 }
-
+/*
+ * read()
+ * INPUTS: fd is location of file in pcb's fie array
+ *         buf stores the buffer for bytes to be read into
+ *         nbytes is the amount of bytes that will be read
+ * OUTPUTS: returns the amount of bytes read (success return = nbytes)
+ *          or -1 otherwise
+ *  Read takes nbytes from the selected file and copies them into the buf
+ * SIDE EFFECTS: updates the current file's position
+*/
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
-    /* Check for invalid index */
-    int i;
-    for (i = 0 ; i < NUM_OF_PROCESSES; i++){
-        if (pcb_processes[i] != 0x0){
-          if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
-        }
-    }
-    //return Terminal_Read(0,buf, nbytes);
-    if (fd < 0 || fd >= FILE_ARRAY_SIZE)
+    //Check for invalid index
+    if (fd < 0 || fd > FILE_ARRAY_SIZE)
         return ERROR;
+
+    //Get current PCB
+    pcb_t * pcb_curr = get_curr_pcb();
+    if (pcb_curr == NULL) return ERROR;
+
+
     /* Check file position */
-    fd_t file_desc = pcb->file_array[fd];
+    fd_t file_desc = pcb_curr->file_array[fd];
+    //If file descriptor is not open, error
+    if (file_desc.flags == 0){
+      return ERROR;
+    }
     inode_t* inode = (inode_t*)(boot_block + file_desc.inode);
+
     /* Return 0 if we've reached the end of the file */
-
-
     if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
     /* Make the correct read call for file type */
 
-    return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
-}
+    // file_pos needs to be updated on every read
+    int32_t bytes_read = file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
+    //If fd is not stdin or stdout update file_pos
+    if (fd >= DYNAMIC_FILE_START){
+      file_desc.file_pos = bytes_read;
 
+    }
+    return bytes_read;
+    //return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
+}
+/*
+ * write()
+ * INPUTS: fd is position of file in file descriptor Array
+ *         buf stores the bytes needed to be written to file
+ *         nbytes is the number of bytes in the buffer
+ * OUTPUTS: Number of bytes written, -1 on error
+ * Write a specific amount of bytes to a file. Checks if a valid write, then executes
+ * Side effects: pcb is changed to active pcb
+*/
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
+    //Check if a valid fd number
+    if (fd < 0 || fd > FILE_ARRAY_SIZE)
+        return ERROR;
 
-  int i;
-  for (i =0 ; i < NUM_OF_PROCESSES; i++){
-      if (pcb_processes[i] != 0x0){
-        if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
-      }
-  }
-  // Terminal_Read(0,buf, nbytes);
-  if (fd < 0 || fd >= FILE_ARRAY_SIZE)
-      return ERROR;
-  /* Check file position */
-  fd_t file_desc = pcb->file_array[fd];
-  /* Return 0 if we've reached the end of the file */
-  /* Make the correct read call for file type */
-  return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
+    pcb_t * pcb_curr = get_curr_pcb();
+    if (pcb_curr == NULL) return ERROR;
+    // Terminal_Read(0,buf, nbytes);
+
+    /* Check file position */
+    fd_t file_desc = pcb_curr->file_array[fd];
+    if (file_desc.flags == 0){
+        return ERROR;
+    }
+    /* Return 0 if we've reached the end of the file */
+    /* Make the correct read call for file type */
+    return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
 }
-
+/*
+ * open()
+ * INPUTS: filename is the file we want to open
+ * OUTPUTS: 0 on success, -1 on error
+ *
+ * Open first checks if the file exists in the file system. Then it looks
+ * for an open spot in the pcb file array. If so, the file is opened and
+ * A link to its inode is placed in the file_desc within the file array
+ * and the rest of the file_desc is changed.
+ *
+ * SIDE EFFECTS:
+ *    Upon a successful open, the current pcb's file array is loaded with a
+ *    new file descriptor
+*/
 int32_t open(const uint8_t* filename) {
     dentry_t dentry;
-    int i;
-    for (i =0 ; i < NUM_OF_PROCESSES; i++){
-        if (pcb_processes[i] != 0x0){
-          if (pcb_processes[i]->in_use == 1)
-          {
-              pcb = pcb_processes[i];
-          }
-        }
-    }
+    pcb_t * pcb_curr = get_curr_pcb();
+    if (pcb_curr == NULL) return ERROR;
 
+    //Check if file exists, get it's dentry
     if (read_dentry_by_name(filename, &dentry) < 0)
         return ERROR;
 
@@ -428,7 +481,7 @@ int32_t open(const uint8_t* filename) {
     int32_t fd;
     for (fa_index = DYNAMIC_FILE_START; fa_index < FILE_ARRAY_SIZE; fa_index++) {
         /* Find the next open location in file array */
-        fd_t file_desc = pcb->file_array[fa_index];
+        fd_t file_desc = pcb_curr->file_array[fa_index];
         if (file_desc.flags != 1) {
             /* Inode is 0 for non-data files */
             if (dentry.filetype == REG_FILETYPE) {
@@ -459,41 +512,30 @@ int32_t open(const uint8_t* filename) {
                     file_desc.file_ops_table_ptr = file_funcs;
                     break;
             }
-            pcb->file_array[fa_index] = file_desc;
+            pcb_curr->file_array[fa_index] = file_desc;
             return fa_index;
         }
     }
     /* There are no open locations in the file array */
     return ERROR;
 }
-
+/*
+ * close()
+*/
 int32_t close(int32_t fd) {
-    if (fd < DYNAMIC_FILE_START || fd >= FILE_ARRAY_SIZE)
+    //Check if valid fd number
+    if (fd < DYNAMIC_FILE_START || fd > FILE_ARRAY_SIZE)
         return ERROR;
-    int i;
-    // printf("Close Called \n");
 
-//int pcb_flag = 0;
-    for (i =0 ; i < NUM_OF_PROCESSES; i++){
-        if (pcb_processes[i] != 0x0){
-          if (pcb_processes[i]->in_use == 1)
-          {
-            pcb = pcb_processes[i];
-            //pcb_flag = 1;
-          }
+    pcb_t * pcb_curr = get_curr_pcb();
 
-        }
+    if (pcb_curr->file_array[fd].flags == 1){
+      pcb_curr->file_array[fd].flags = 0;
+      return pcb_curr->file_array[fd].file_ops_table_ptr.close(fd);
+      return SUCCESS;
     }
+    return ERROR;
 
-    // if(pcb->file_array[fd].flags == 0 || pcb_flag == 0)
-    // {
-    //   return ERROR;
-    // }
-
-
-    pcb->file_array[fd].flags = 0;
-    return pcb->file_array[fd].file_ops_table_ptr.close(fd);
-    return SUCCESS;
 }
 
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
@@ -510,4 +552,22 @@ int32_t set_handler(int32_t signum, void* handler_address) {
 
 int32_t sigreturn(void) {
     return 0;
+}
+
+/*
+ * get_curr_pcb()
+ * INPUTS: NONE
+ * OUTPUTS: pointer to the current pcb
+ * Finds the one active pcb. Nothing special, just used at beginning
+ * of every function and figured it would be better to make into a routine
+*/
+pcb_t * get_curr_pcb(){
+  int i;
+  //Get current PCB
+  for (i =0 ; i < NUM_OF_PROCESSES; i++){
+      if (pcb_processes[i] != 0x0){
+        if (pcb_processes[i]->in_use == 1) return pcb_processes[i];
+      }
+  }
+  return NULL;
 }

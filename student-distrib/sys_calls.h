@@ -59,7 +59,7 @@ typedef struct pcb {
 int32_t find_new_process();
 
 pcb_t* create_new_pcb(int32_t process_num);
-
+pcb_t* get_curr_pcb();
 /* Global PCB file array */
 // pcb_t* pcb;
 //
