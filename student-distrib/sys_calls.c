@@ -118,6 +118,17 @@ pcb_t* create_new_pcb(int32_t process_num) {
  *               removes current pcb
 */
 int32_t halt(uint8_t status) {
+    /* Check if we are halting from the base shell. If we are,
+     * then we want to restart the shell but not leave from it.
+     */
+
+    pcb_t* curr_pcb = get_curr_pcb();
+    printf("%d", curr_pcb->process_num);
+    if (curr_pcb != NULL && curr_pcb->process_num == 0) {
+        pcb_processes[0] = NULL;
+        execute((uint8_t*)"shell");
+    }
+
     /*
       1. Restore parent data
         - parent process number (most important)
