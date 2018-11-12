@@ -73,12 +73,8 @@ pcb_t* create_new_pcb(int32_t process_num) {
 
     new_pcb->parent_pcb = 0x0;
 
-    // set terminal read/write to indexes 0 and 1 here!
-
     return new_pcb;
 }
-
-// void set
 
 int32_t halt(uint8_t status) {
     /*
@@ -99,20 +95,21 @@ int32_t halt(uint8_t status) {
     int index;
     int current_num = 0;
     int old_num = 0;
-    pcb_t * pcb_rent;
+    pcb_t * pcb_parent;
     for (index = 0; index < NUM_OF_PROCESSES; index++){
         if (pcb_processes[index] != 0x0){
           if (pcb_processes[index]->in_use == 1){
 
-              if(pcb_processes[index]->parent_pcb == 0x0) //first process does not have a parent so skip parent stuff
-              {
+//first process does not have a parent so skip parent stuff
+              if(pcb_processes[index]->parent_pcb == 0x0)
+                            {
                 break;
               }
               current_num = pcb_processes[index]->process_num;
-              pcb_rent = (pcb_t *)pcb_processes[index]->parent_pcb;
-              old_num = pcb_rent->process_num;
-              pcb_processes[index]->in_use = 0;
-                pcb_rent->in_use = 1;
+              pcb_parent = (pcb_t *)pcb_processes[index]->parent_pcb;
+              old_num = pcb_parent->process_num;
+              pcb_processes[index]->in_use = 0; //turn parent off
+                pcb_parent->in_use = 1; //turn child on
               break;
           }
         }
@@ -390,6 +387,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
     /* Make the correct read call for file type */
+
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 
@@ -416,15 +414,19 @@ int32_t open(const uint8_t* filename) {
     int i;
     for (i =0 ; i < NUM_OF_PROCESSES; i++){
         if (pcb_processes[i] != 0x0){
-          if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
+          if (pcb_processes[i]->in_use == 1)
+          {
+              pcb = pcb_processes[i];
+          }
         }
     }
-    if (read_dentry_by_name(filename, &dentry) < 0) /* causes warning here?? */
+
+    if (read_dentry_by_name(filename, &dentry) < 0)
         return ERROR;
 
     int fa_index;
     int32_t fd;
-    for (fa_index = DYNAMIC_FILE_START; fa_index < FILENAME_SIZE; fa_index++) {
+    for (fa_index = DYNAMIC_FILE_START; fa_index < FILE_ARRAY_SIZE; fa_index++) {
         /* Find the next open location in file array */
         fd_t file_desc = pcb->file_array[fa_index];
         if (file_desc.flags != 1) {
@@ -469,12 +471,26 @@ int32_t close(int32_t fd) {
     if (fd < DYNAMIC_FILE_START || fd >= FILE_ARRAY_SIZE)
         return ERROR;
     int i;
+    // printf("Close Called \n");
+
+//int pcb_flag = 0;
     for (i =0 ; i < NUM_OF_PROCESSES; i++){
         if (pcb_processes[i] != 0x0){
-          if (pcb_processes[i]->in_use == 1) pcb = pcb_processes[i];
+          if (pcb_processes[i]->in_use == 1)
+          {
+            pcb = pcb_processes[i];
+            //pcb_flag = 1;
+          }
 
         }
     }
+
+    // if(pcb->file_array[fd].flags == 0 || pcb_flag == 0)
+    // {
+    //   return ERROR;
+    // }
+
+
     pcb->file_array[fd].flags = 0;
     return pcb->file_array[fd].file_ops_table_ptr.close(fd);
     return SUCCESS;
