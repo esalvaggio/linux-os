@@ -29,7 +29,7 @@
 #define SUCCESS              0
 #define ERROR               -1
 
-//i
+/* Global PCB file array */
 pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
 //Arrays for file operations pointer table
@@ -39,6 +39,7 @@ fotp_t key_funcs = {Terminal_Open, Terminal_Close, Terminal_Read, Terminal_Write
 fotp_t stdin_func = {NULL, NULL, Terminal_Read, NULL};
 fotp_t stdout_func = {NULL, NULL, NULL, Terminal_Write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
+fotp_t no_fotp = {NULL, NULL, NULL, NULL};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
 uint32_t user_stack_pointer = VIRTUAL_ADDRESS + STACK_PAGE_SIZE - FOUR_BYTE_ADDR;
@@ -85,6 +86,7 @@ pcb_t* create_new_pcb(int32_t process_num) {
       new_pcb->file_array[fa_index].flags = 0;
       new_pcb->file_array[fa_index].inode = -1;
       new_pcb->file_array[fa_index].file_pos = 0;
+      new_pcb->file_array[fa_index].file_ops_table_ptr = no_fotp;
     }
     /* Initialize stdin and stdout to in use and bound to terminal functions*/
     for (fa_index = 0; fa_index < DYNAMIC_FILE_START; fa_index++){
@@ -121,14 +123,12 @@ int32_t halt(uint8_t status) {
     /* Check if we are halting from the base shell. If we are,
      * then we want to restart the shell but not leave from it.
      */
-
     pcb_t* curr_pcb = get_curr_pcb();
-    printf("%d", curr_pcb->process_num);
+
     if (curr_pcb != NULL && curr_pcb->process_num == 0) {
         pcb_processes[0] = NULL;
         execute((uint8_t*)"shell");
     }
-
     /*
       1. Restore parent data
         - parent process number (most important)
@@ -145,10 +145,8 @@ int32_t halt(uint8_t status) {
 
               //first process does not have a parent so skip parent stuff
               if(pcb_processes[index]->parent_pcb == 0x0)
-              {
-                // return ERROR;
-               break;
-              }
+                  break;
+
 
               current_num = pcb_processes[index]->process_num;
               pcb_parent = (pcb_t *)pcb_processes[index]->parent_pcb;
@@ -160,36 +158,35 @@ int32_t halt(uint8_t status) {
         }
     }
 
-
     /*
           2. Restore parent paging
             - similar to how we set up paging in execute()
             - flush TLB!
     */
-    //uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
-    page_dir_init(VIRTUAL_ADDRESS, ADDR_8MB); //set the paging back to 8MB
-
+    uint32_t old_addr = ADDR_8MB + (old_num * ADDR_4MB);
+    page_dir_init(VIRTUAL_ADDRESS, old_addr); //set the paging back to 8MB
 
       /*
       3. Clear all file descriptors
         - calling close()
       4. Jump back to parent process
     */
-    //3
+
+    // step 3
     int i;
     for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
-        //close all files
-        (void)pcb_processes[current_num]->file_array[i].file_ops_table_ptr.close;
+        /* close all files in the pcb */
+        close(i);
     }
-    //4
-    //We need to somehow return to the parent esp/ebp that should be saved in the pcb structure
-    //Not really sure what to do with them
+
+    // step 4
+    // We need to return to the parent esp/ebp that should be saved in the pcb structure
     tss.esp0 = pcb_processes[old_num]->esp0;
     tss.ss0 = pcb_processes[old_num]->ss0; //kernel stack segment = kernel_DS
 
     /*
      * We need to restore the previous ebp (entering EXECUTE) in order to return
-    */
+     */
     int32_t old_ebp = pcb_processes[current_num]->ebp;
 
     //Finally, Clear pcb_processes[current_num]
@@ -657,7 +654,7 @@ int32_t sigreturn(void) {
 pcb_t * get_curr_pcb(){
   int i;
   //Get current PCB
-  for (i =0 ; i < NUM_OF_PROCESSES; i++){
+  for (i = 0 ; i < NUM_OF_PROCESSES; i++){
       if (pcb_processes[i] != 0x0){
         if (pcb_processes[i]->in_use == 1) return pcb_processes[i];
       }

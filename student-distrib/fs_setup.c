@@ -159,6 +159,14 @@ int32_t file_open(const uint8_t* filename) {
  *
  */
 int32_t file_close(int32_t fd) {
+    pcb_t* curr_pcb = get_curr_pcb();
+    fd_t* file_desc = &curr_pcb->file_array[fd];
+    file_desc->flags = 0;
+    file_desc->inode = -1;
+    file_desc->file_pos = 0;
+    /* Reset the file operations table pointer */
+    fotp_t no_fotp = {NULL, NULL, NULL, NULL};
+    file_desc->file_ops_table_ptr = no_fotp;
     return 0;
 }
 
@@ -224,6 +232,14 @@ int32_t dir_open(const uint8_t* filename) {
  *
  */
 int32_t dir_close(int32_t fd) {
+    pcb_t* curr_pcb = get_curr_pcb();
+    fd_t* file_desc = &curr_pcb->file_array[fd];
+    file_desc->flags = 0;
+    file_desc->inode = -1;
+    file_desc->file_pos = 0;
+    /* Reset the file operations table pointer */
+    fotp_t no_fotp = {NULL, NULL, NULL, NULL};
+    file_desc->file_ops_table_ptr = no_fotp;
     return 0;
 }
 
