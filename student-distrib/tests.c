@@ -11,7 +11,7 @@
 
 #define PASS 1
 #define FAIL 0
-
+#define RTC_READ_LOOPS 6
 #define AMT_FREQ 13
 
 volatile int freq_flag = 0;
