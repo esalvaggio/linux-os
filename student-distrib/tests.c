@@ -115,8 +115,20 @@ int change_frequency_test(){
 	int no_interrupts;
 	int counter;
 	int timer;
-	int frequencies[AMT_FREQ] = {64, 8, 13, 128, 2, 1024, 12, 16, 512, 4, 128, 2048, 32};
 
+	printf("This function will test multiple frequency inputs.\n");
+	printf("Each freqeuncy will count down from twice its value, \n");
+	printf("so each frequency will take 2 seconds to count down.\n");
+	printf("For example, frequency 64Hz will count down from 128->0,\n");
+	printf("one number for each interrupt.\n");
+	printf("Press Enter to begin");
+	char buf[10];
+	Terminal_Read(0, buf, 10);
+	clear();
+	update_cursor(0,0);
+
+
+	int frequencies[AMT_FREQ] = {64, 8, 13, 128, 2, 1024, 12, 16, 512, 4, 128, 2048, 32};
 	uint8_t fname[3] = "RTC";
 	for (counter = 0; counter < AMT_FREQ; counter++){
 		RTC_open(fname);
@@ -126,7 +138,6 @@ int change_frequency_test(){
 				printf(".");
 
 		}
-
 
 		if (RTC_write(0, &frequencies[counter], 4) == 0){ //returns success
 			no_interrupts = frequencies[counter] * 2;
@@ -365,7 +376,7 @@ int execute_hello_test()
 								:	"r"(hello)
 								: "eax" , "ebx"
 							);
-*/							
+*/
 			return PASS;
 
 }
@@ -385,7 +396,7 @@ void launch_tests(){
 	/* to test RTC, go to rtc.c */
 
 	/* Checkpoint 2 tests */
-	TEST_OUTPUT("Change frequency", change_frequency_test());
+	//TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
 	//TEST_OUTPUT("TEST_Terminal", terminal_test());
 	// TEST_OUTPUT("File System: Text File test", file_system_test_1());
@@ -397,7 +408,7 @@ void launch_tests(){
 
 	/* Checkpoint 3 tests */
 	// linkage_test();
-	 //execute_test_print_test();
-	 //execute_hello_test();
+	//execute_test_print_test();
+	//execute_hello_test();
 
 }
