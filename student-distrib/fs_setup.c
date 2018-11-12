@@ -1,4 +1,5 @@
 #include "fs_setup.h"
+#include "sys_calls.h"
 #include "lib.h"
 
 /* fs_init
@@ -26,7 +27,7 @@ void fs_init(uint32_t module_addr) {
  * Side Effects: Calls read_dentry_by_index
  *
  */
-int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry) {
+int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry) {
 
     int32_t entry_index;
     dentry_t dir_entry;
@@ -35,7 +36,7 @@ int32_t read_dentry_by_name(const int8_t* fname, dentry_t* dentry) {
         /* Obtain the directory entry */
         dir_entry = boot_block->d_entries[entry_index];
         /* Check if the filenames match */
-        if (!strncmp(fname, dir_entry.filename, FILENAME_SIZE)) {
+        if (!strncmp((int8_t*)fname, (int8_t*)dir_entry.filename, FILENAME_SIZE)) {
             /* Call the function below to set values */
             return read_dentry_by_index(entry_index, dentry);
         }
@@ -141,7 +142,7 @@ dentry_t dir;
  * Side Effects: None
  *
  */
-int32_t file_open(const int8_t* filename) {
+int32_t file_open(const uint8_t* filename) {
     if (read_dentry_by_name(filename, &dir) < 0)
         return -1;
 
@@ -168,15 +169,20 @@ int32_t file_close(int32_t fd) {
  *    fd - file descriptor
  *    buf - buffer that stores the data read
  *    nbytes - number of bytes to be read
- * Outputs: 0 on success, -1 on fail
+ * Outputs: the number of bytes read, -1 if fails
  * Side Effects: None
  *
  */
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
-    if (read_data(dir.inode_num, 0, buf, nbytes) <= 0)
-        return -1;
-
-    return 0;
+    /* Find the current file position */
+    pcb_t* curr_pcb = get_curr_pcb();
+    fd_t* file_desc = &curr_pcb->file_array[fd];
+    /* Read up to "length" */
+    int32_t length = nbytes + file_desc->file_pos;
+    int32_t bytes_read = read_data(dir.inode_num, file_desc->file_pos, buf, length);
+    /* Update the file position after reading */
+    file_desc->file_pos = length;
+    return bytes_read;
 }
 
 /* file_write
@@ -188,7 +194,7 @@ int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
  * Side Effects: None
  *
  */
-int32_t file_write(int8_t* filename) {
+int32_t file_write(int32_t fd, const void* buf, int32_t nbytes) {
     return -1;
 }
 
@@ -201,7 +207,7 @@ int32_t file_write(int8_t* filename) {
  * Side Effects: None
  *
  */
-int32_t dir_open(const int8_t* filename) {
+int32_t dir_open(const uint8_t* filename) {
     if (read_dentry_by_name(filename, &dir) < 0)
         return -1;
 
@@ -229,32 +235,29 @@ int32_t dir_close(int32_t fd) {
  *    fd - file descriptor
  *    buf - buffer that stores the data read
  *    nbytes - number of bytes to read
- * Outputs: 0 on success
+ * Outputs: number of bytes read from filename, 0 once we are done
  * Side Effects: None
  *
  */
 int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
-    int32_t dir_index;
-    for (dir_index = 0; dir_index < boot_block->dir_count; dir_index++) {
-        dentry_t dir = boot_block->d_entries[dir_index];
+    pcb_t* curr_pcb = get_curr_pcb();
+    fd_t* file_desc = &curr_pcb->file_array[fd];
+    /* Update the file_pos to what file should be read */
+    file_desc->file_pos++;
+    /* We are done reading all the files in the directory */
+    if (file_desc->file_pos >= boot_block->dir_count)
+        return 0;
 
-        if (strlen(dir.filename) > FILENAME_SIZE) {
-            printf("Filename: ");
-            int32_t char_index;
-            for (char_index = 0; char_index < FILENAME_SIZE; char_index++)
-                putc(dir.filename[char_index]);
+    dentry_t dir = boot_block->d_entries[file_desc->file_pos];
 
-            printf(",   ");
-        } else {
-            printf("Filename: %s,   ", dir.filename);
-        }
-        printf("File type: %d,   ", dir.filetype);
-
-        inode_t* inode = (inode_t*)(boot_block + dir.inode_num + 1);
-        printf("File size: %d\n", inode->length);
+    copy_string(buf, dir.filename, nbytes);
+    int32_t i = 0;
+    while (dir.filename[i] != '\0' && i < nbytes) {
+        i++;
     }
 
-    return 0;
+    /* Return the number of bytes read from the filename */
+    return i;
 }
 
 /* dir_write
@@ -266,7 +269,7 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
  * Side Effects: None
  *
  */
-int32_t dir_write(int8_t* filename) {
+int32_t dir_write(int32_t fd, const void* buf, int32_t nbytes) {
     return -1;
 }
 
@@ -281,7 +284,7 @@ int32_t dir_write(int8_t* filename) {
  * Side Effects: None
  *
  */
-void copy_string(int8_t* dest, const int8_t* src, uint32_t n) {
+void copy_string(uint8_t* dest, const uint8_t* src, uint32_t n) {
     int32_t i = 0;
     while (src[i] != '\0' && i < n) {
         dest[i] = src[i];

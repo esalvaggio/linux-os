@@ -5,12 +5,14 @@
 #include "./devices/i8259.h"
 #include "fs_setup.h"
 #include "./devices/keyboard.h"
+#include "sys_calls.h"
+#include "paging.h"
 
 
 #define PASS 1
 #define FAIL 0
 
-#define RTC_READ_LOOPS 6
+#define AMT_FREQ 13
 
 volatile int freq_flag = 0;
 
@@ -83,13 +85,14 @@ int divide_by_zero_test(){
 int paging_test(){
 	TEST_HEADER;
 
-	int * validAddress1 = (int *)0xB8000;
-	int * validAddress2 = (int *)0xB8FFC;
+	page_dir_init(0x08000000, 0x800000);
+	int * validAddress1 = (int *)0x08000000;
+	int * validAddress2 = (int *)0x08048000;
 	printf("Inside valid Video memory address 1: %d\n", *validAddress1);
 	printf("Inside valid Video memory address 2: %d\n", *validAddress2);
-	int * invalidAddress = (int *)0xB8FFF;
-	printf("Inside invalid address: ");
-	printf("%d\n", *invalidAddress);
+	// int * invalidAddress = (int *)0xB8FFF;
+	// printf("Inside invalid address: ");
+	// printf("%d\n", *invalidAddress);
 	return PASS;
 }
 
@@ -108,33 +111,44 @@ int paging_test(){
  */
 int change_frequency_test(){
 	TEST_HEADER;
-	cli();
-	SET_IDT_ENTRY(idt[RTC_INDEX], new_rtc_idt);
-	sti();
-	//no_interrupts counts the number of times we will call rtc_read()
-	int no_interrupts = 1;
+
+	int no_interrupts;
 	int counter;
-	//frequencies stores the 12 frequencies we will change to, 2 invalid
-	int frequencies[12] = {64, 8, 13, 128, 4, 42,64, 1024, 32, 512, 16, 2};
-	//for every frequency...
-	for (counter = 0; counter < 12; counter++){
-	    /*basically, for the higher frequencies only calling rtc_read
-	      once isn't going to be enough to see the change in frequencies.
-	      by taking the interrupt number in Hz divided by amount of loops,
-	      +1 in case our frequency is 2
-	    */
-		if (counter > 0) no_interrupts = (frequencies[counter-1] / RTC_READ_LOOPS) + 1;
-		
-		for (;no_interrupts>0;no_interrupts--){
-			TEST_OUTPUT("Test RTC Read", rtc_read());
-			clear();
+	int timer;
+	int frequencies[AMT_FREQ] = {64, 8, 13, 128, 2, 1024, 12, 16, 512, 4, 128, 2048, 32};
+
+	uint8_t fname[3] = "RTC";
+	for (counter = 0; counter < AMT_FREQ; counter++){
+		RTC_open(fname);
+		printf("Testing Frequency: %d", frequencies[counter]);
+		for (timer = 0; timer < 4; timer++){
+				RTC_read(0, NULL,0);
+				printf(".");
+
 		}
-		printf("Frequency: %d", frequencies[counter]);
-		RTC_write(NULL, frequencies[counter]);
-	}
-	//reset to old RTC_Handler
-	SET_IDT_ENTRY(idt[RTC_INDEX], RTC_Handler);
+
+
+		if (RTC_write(0, &frequencies[counter], 4) == 0){ //returns success
+			no_interrupts = frequencies[counter] * 2;
+			for (;no_interrupts>=0;no_interrupts--){
+				RTC_read(0, NULL ,0);
+				clear();
+				update_cursor(0,0);
+				printf("interrupt: %d", no_interrupts);
+			}
+		}else{
+				clear();
+				update_cursor(0,0);
+				printf("Bad Input!");
+				for (timer = 0; timer < 4; timer ++){
+						RTC_read(0, NULL, 0);
+				}
+		}
+
 	clear();
+	update_cursor(0,0);
+	}
+	RTC_open(fname);
 	return PASS;
 }
 
@@ -155,7 +169,7 @@ int rtc_read(){
 	// (about 3 seconds for 2hz)
 	int interrupts = RTC_READ_LOOPS;
 	while (interrupts > 0){
-			RTC_read(NULL, 0);
+			RTC_read(0, NULL, 0);
 			printf("Interrupt!\n");
 			interrupts --;
 	}
@@ -178,9 +192,9 @@ int terminal_test()
 {
 	TEST_HEADER;
 	char b[128] = ""; //buffer with space for 128 chars as specified,this value needs to be 128 in order to have a buffer with length 128 as specified
-	int readResult = Terminal_Read(b,128);
+	int readResult = Terminal_Read(0,b,128);
 	printf("%d \n", readResult);
-	Terminal_Write(b,128);
+	Terminal_Write(0,b,128);
 	//int writeResult = Terminal_Write(b,5); //if desired you can see the number of chars written as well
 		//printf("%d \n", writeResult);
 	return PASS; //text written and Terminal_Write need to be compared directly to see if correct or not
@@ -197,7 +211,7 @@ int terminal_test()
  */
 int file_system_test_1() {
 		TEST_HEADER;
-		int8_t file[34] = "frame0.txt";
+		uint8_t file[34] = "frame0.txt";
 		if (file_open(file) < 0)
 				return FAIL;
 
@@ -223,7 +237,7 @@ int file_system_test_1() {
  */
 int file_system_test_2() {
 		TEST_HEADER;
-		int8_t file[34] = "cat";
+		uint8_t file[34] = "cat";
 		if (file_open(file) < 0)
 				return FAIL;
 
@@ -258,7 +272,7 @@ int file_system_test_2() {
  */
 int file_system_test_3() {
 		TEST_HEADER;
-		int8_t file[34] = "verylargetextwithverylongname.txt";
+		uint8_t file[34] = "verylargetextwithverylongname.txt";
 		if (file_open(file) < 0)
 				return FAIL;
 
@@ -299,6 +313,66 @@ int file_system_test_4() {
 }
 
 /* Checkpoint 3 tests */
+
+void linkage_test() {
+
+	printf("we here\n");
+	int fail;
+	int sys_call = 2;
+	asm volatile (
+								"movl %0, %%eax\n\t"
+								"int $0x80"
+								: "=a"(fail)
+								:	"r"(sys_call)
+							);
+}
+
+int execute_test_print_test(){
+	//uint8_t shell[6] = "shell ";
+	TEST_HEADER;
+	uint8_t * testPrint = (uint8_t *)"testprint";
+
+
+	execute(testPrint);
+
+/*
+	asm volatile ("								\n\
+								movl $2, %%eax	\n\
+							  movl %0, %%ebx  \n\
+								int $0x80				\n\
+								"
+								:
+								:	"r"(testPrint)
+								: "eax" , "ebx"
+							);
+*/
+ return PASS;
+}
+
+int execute_hello_test()
+{
+	TEST_HEADER;
+	uint8_t * hello = (uint8_t *)"hello";
+	execute(hello);
+
+/*
+	asm volatile ("								\n\
+								movl $2, %%eax	\n\
+								movl %0, %%ebx  \n\
+								int $0x80				\n\
+								"
+								:
+								:	"r"(hello)
+								: "eax" , "ebx"
+							);
+*/							
+			return PASS;
+
+}
+
+
+
+
 /* Checkpoint 4 tests */
 /* Checkpoint 5 tests */
 
@@ -306,15 +380,24 @@ int file_system_test_4() {
 /* Test suite entry point */
 void launch_tests(){
 	// TEST_OUTPUT("idt_test", idt_test());
-	// TEST_OUTPUT("paging_test", paging_test());
+	//TEST_OUTPUT("paging_test", paging_test());
 	//TEST_OUTPUT("divide by zero test ", divide_by_zero_test());
 	/* to test RTC, go to rtc.c */
+
 	/* Checkpoint 2 tests */
-	//TEST_OUTPUT("Change frequency", change_frequency_test());
+	TEST_OUTPUT("Change frequency", change_frequency_test());
 	//TEST_OUTPUT("Test RTC Read", rtc_read());
 	//TEST_OUTPUT("TEST_Terminal", terminal_test());
 	// TEST_OUTPUT("File System: Text File test", file_system_test_1());
 	// TEST_OUTPUT("File System:	Non-Text File Test", file_system_test_2());
 	// TEST_OUTPUT("File System: Large File Test", file_system_test_3());
 	// TEST_OUTPUT("File System: Directory Test", file_system_test_4());
+
+	/*Checkpoint 2 regade tests*/
+
+	/* Checkpoint 3 tests */
+	// linkage_test();
+	 //execute_test_print_test();
+	 //execute_hello_test();
+
 }

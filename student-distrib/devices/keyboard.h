@@ -25,10 +25,10 @@
 
 void Keyboard_Init();
 void Keyboard_Handler();
-int32_t Terminal_Write(const void * buf, int32_t nbytes);
-int32_t Terminal_Read(const void * buf, int32_t nbytes);
-int32_t Terminal_Open(const void * buf, int32_t nbytes);
-int32_t Terminal_Close(const void * buf, int32_t nbytes);
+int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes);
+int32_t Terminal_Read(int32_t fd, void * buf, int32_t nbytes);
+int32_t Terminal_Open(const uint8_t * filename);
+int32_t Terminal_Close(int32_t fd);
 void print_to_screen(char output_key);
 
 #endif

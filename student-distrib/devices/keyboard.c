@@ -166,13 +166,8 @@ void Keyboard_Init() {
 * Outputs: returns 0
 * This function currently does nothing but may be given functionality when system calls are implemented
 */
-int32_t Terminal_Open(const void * buf, int32_t nbytes)
+int32_t Terminal_Open(const uint8_t * filename)
 {
-  if(buf == NULL || nbytes < 0) //invalid input
-  {
-    return FAILURE;
-  }
-
   return SUCCESS; //open always works
 }
 
@@ -181,13 +176,8 @@ int32_t Terminal_Open(const void * buf, int32_t nbytes)
 * Outputs: returns 0
 * This function currently does nothing but may be given functionality when system calls are implemented
 */
-int32_t Terminal_Close(const void * buf, int32_t nbytes)
+int32_t Terminal_Close(int32_t fd)
 {
-  if(buf == NULL || nbytes < 0) //invalid input
-  {
-    return FAILURE;
-  }
-
   return SUCCESS; //close always works
 }
 
@@ -198,13 +188,30 @@ int32_t Terminal_Close(const void * buf, int32_t nbytes)
 * This function waits for enter to be pressed, then reads the desired number of chars from the text buffer
 * into the provided buffer. It returns the number of bytes read
 */
-int32_t Terminal_Read(const void * buf, int32_t nbytes)
+int32_t Terminal_Read(int32_t fd, void * buf, int32_t nbytes)
 {
 
 if(buf == NULL || nbytes < 0) //invalid input
 {
   return FAILURE;
 }
+
+
+// int y;
+// int found_enter = 0;
+// for(y = 0; y < nbytes; y++)
+// {
+//   char c = ((char *)buf)[y];
+//   if(c == '\n')
+//   {
+//     found_enter = 1;
+//   }
+// }
+//
+// if(found_enter == 0)
+// {
+//   return FAILURE;
+// }
 
 while(!enter_flag); //wait for enter to be pressed to do anything
 
@@ -235,24 +242,61 @@ enter_flag = 0;
 * chars. If nbytes is bigger than the size of the buffer, the entire buffer will be printed but cut off
 * after enter
 */
-int32_t Terminal_Write(const void * buf, int32_t nbytes)
+int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 {
 
-  if(buf == NULL || nbytes < 0) //invalid input
+if(buf == NULL || nbytes < 0)
+{
+  return FAILURE;
+}
+
+
+// int enter_found = 0;
+// int x;
+// for(x = 0; x < nbytes; x++)
+// {
+//   if(((char *)buf)[x] == '\n' )
+//   {
+//     enter_found = 1;
+//   }
+// }
+//
+// if(old_index != 0)
+// {
+//   if(buf == NULL || nbytes < 0) //invalid input
+//   {
+//     return FAILURE;
+//   }
+//   if(nbytes > BUFFER_LENGTH) //if they try to read more than in the buffer, set the num bytes to where enter is
+//   {
+//     nbytes = old_index;
+//   }
+//
+//   else if(nbytes > old_index) //if they try to read more than in the buffer, set the num bytes to where enter is
+//   {
+//     nbytes = old_index;
+//   }
+// }
+
+
+int x;
+
+for(x = 0; x < nbytes; x++)
+{
+  char c = ((char *)buf)[x];
+  int ascii = (int)c;
+  // printf("%c \n", c);
+   //printf("%d  ", ascii);
+  // if((ascii < 32 && ascii != 0) || ascii > 127)
+  // {
+  //   return -1;
+  // }
+  if(ascii < 0)
   {
     return FAILURE;
   }
-  if(nbytes > BUFFER_LENGTH) //if they try to read more than in the buffer, set the num bytes to where enter is
-  {
-    nbytes = old_index;
-  }
+}
 
-  else if(nbytes > old_index) //if they try to read more than in the buffer, set the num bytes to where enter is
-  {
-    nbytes = old_index;
-  }
-
-  int x;
   for(x = 0; x < nbytes; x++)
   {
     printf("%c", ((char *)buf)[x]); //print
@@ -284,7 +328,15 @@ void print_to_screen(char output_key)
     printf("%c", output_key);
     }
   }
-
+  else if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
+  {
+    if(output_key == '\n')
+    {
+      new_buffer[new_index] = output_key;
+      printf("%c", output_key);
+      new_index++;
+    }
+  }
   else //any other chars besides backspace
   {
   printf("%c", output_key); //print to screen
@@ -292,13 +344,6 @@ void print_to_screen(char output_key)
   new_index++;
   }
 
-  if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
-  {
-    output_key = '\n'; //put enter in buffer since it is full, print buffer
-    new_buffer[new_index] = output_key;
-    printf("%c", output_key);
-    new_index++;
-  }
 
 
   if(output_key == '\n') //key is enter, end of buffer
