@@ -619,7 +619,7 @@ int32_t close(int32_t fd) {
  * nbytes: amount of bytes to store
 */
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
-    return 0;
+    return ERROR;
 }
 
 /*
@@ -627,21 +627,21 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
  * inputs: screen_start pointer to pointer of chars
 */
 int32_t vidmap(uint8_t** screen_start) {
-    return 0;
+    return ERROR;
 }
 /*
  * set_handler()
  * not sure
 */
 int32_t set_handler(int32_t signum, void* handler_address) {
-    return 0;
+    return ERROR;
 }
 
 /*
  * returns sig
 */
 int32_t sigreturn(void) {
-    return 0;
+    return ERROR;
 }
 
 /*
