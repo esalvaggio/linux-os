@@ -108,7 +108,6 @@ int paging_test(){
  * Inputs: None
  * Outputs: PASS
  * Side Effects: Cursor is placed somewhre on screen (ususally about halfway down.)
- * TODO: Remove some magic numbers, add comments through function
  */
 int change_frequency_test(){
 	TEST_HEADER;
@@ -165,7 +164,10 @@ int change_frequency_test(){
  */
 int rtc_read(){
 	TEST_HEADER;
-	int interrupts = 10;
+	//RTC_READ_LOOPS is just an arbitary number,
+	//enough to show it actually works
+	// (about 3 seconds for 2hz)
+	int interrupts = RTC_READ_LOOPS;
 	while (interrupts > 0){
 			RTC_read(0, NULL, 0);
 			printf("Interrupt!\n");
