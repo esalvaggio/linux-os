@@ -193,11 +193,7 @@ int32_t halt(uint8_t status) {
  * list. It then enables paging and creates a new pcb to run the command.
 */
 int32_t execute(const uint8_t* command) {
-
-    if(command == NULL)
-    {
-      return ERROR;
-    }
+    if(command == NULL) return ERROR;
     cli();
     /* Instructions
       1. Parse  ---
@@ -214,6 +210,10 @@ int32_t execute(const uint8_t* command) {
             space_flag = 1;
             /* Get filename */
             uint8_t buf[FILENAME_SIZE];
+            if (command_length > FILENAME_SIZE){
+                sti();
+                return ERROR;
+            }
             copy_string(buf, command, command_idx);
             buf[command_idx] = '\0';
             fname = buf;
@@ -226,7 +226,6 @@ int32_t execute(const uint8_t* command) {
             args = arg_buf;
             break;
         }
-
     }
     //special case if there is no space breaking up arguments
     if (space_flag == 0){
@@ -269,17 +268,13 @@ int32_t execute(const uint8_t* command) {
             return ERROR;
         }
     }
-
     /* get entry point from bytes 24-27 */
     if (read_data(dentry.inode_num, ENTRY_POINT, ex_buf, ENTRY_POINT_END) < 0) {
         sti();
         return ERROR;
     }
-
-
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
-
     //Find new process index
     int32_t process_num = find_new_process();
 
@@ -342,8 +337,6 @@ int32_t execute(const uint8_t* command) {
 
     }
     pcb_processes[process_num]->in_use = 1;
-
-
 
     /* Copy arguments into pcb */
     if (space_flag == 1){
@@ -463,16 +456,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
     /* Make the correct read call for file type */
-
-    // file_pos needs to be updated on every read
-    int32_t bytes_read = file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
-    //If fd is not stdin or stdout update file_pos
-    if (fd >= DYNAMIC_FILE_START){
-      file_desc.file_pos = bytes_read;
-
-    }
-    return bytes_read;
-    //return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
+    return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 /*
  * write()
