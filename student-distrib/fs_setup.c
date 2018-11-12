@@ -1,4 +1,5 @@
 #include "fs_setup.h"
+#include "sys_calls.h"
 #include "lib.h"
 
 /* fs_init
@@ -173,7 +174,15 @@ int32_t file_close(int32_t fd) {
  *
  */
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
-    return read_data(dir.inode_num, 0, buf, nbytes);
+    /* Find the current file position */
+    pcb_t* curr_pcb = get_curr_pcb();
+    fd_t* file_desc = &curr_pcb->file_array[fd];
+    /* Read up to "length" */
+    int32_t length = nbytes + file_desc->file_pos;
+    int32_t bytes_read = read_data(dir.inode_num, file_desc->file_pos, buf, length);
+    /* Update the file position after reading */
+    file_desc->file_pos = length;
+    return bytes_read;
 }
 
 /* file_write
@@ -226,32 +235,29 @@ int32_t dir_close(int32_t fd) {
  *    fd - file descriptor
  *    buf - buffer that stores the data read
  *    nbytes - number of bytes to read
- * Outputs: 0 on success
+ * Outputs: number of bytes read from filename, 0 once we are done
  * Side Effects: None
  *
  */
 int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
-    int32_t dir_index;
-    for (dir_index = 0; dir_index < boot_block->dir_count; dir_index++) {
-        dentry_t dir = boot_block->d_entries[dir_index];
+    pcb_t* curr_pcb = get_curr_pcb();
+    fd_t* file_desc = &curr_pcb->file_array[fd];
+    /* Update the file_pos to what file should be read */
+    file_desc->file_pos++;
+    /* We are done reading all the files in the directory */
+    if (file_desc->file_pos >= boot_block->dir_count)
+        return 0;
 
-        if (strlen((int8_t*)dir.filename) > FILENAME_SIZE) {
-            printf("Filename: ");
-            int32_t char_index;
-            for (char_index = 0; char_index < FILENAME_SIZE; char_index++)
-                putc(dir.filename[char_index]);
+    dentry_t dir = boot_block->d_entries[file_desc->file_pos];
 
-            printf(",   ");
-        } else {
-            printf("Filename: %s,   ", dir.filename);
-        }
-        printf("File type: %d,   ", dir.filetype);
-
-        inode_t* inode = (inode_t*)(boot_block + dir.inode_num + 1);
-        printf("File size: %d\n", inode->length);
+    copy_string(buf, dir.filename, nbytes);
+    int32_t i = 0;
+    while (dir.filename[i] != '\0' && i < nbytes) {
+        i++;
     }
 
-    return 0;
+    /* Return the number of bytes read from the filename */
+    return i;
 }
 
 /* dir_write
