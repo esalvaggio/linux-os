@@ -194,7 +194,6 @@ int32_t halt(uint8_t status) {
 */
 int32_t execute(const uint8_t* command) {
 
-
     if(command == NULL)
     {
       return ERROR;
@@ -232,6 +231,11 @@ int32_t execute(const uint8_t* command) {
     //special case if there is no space breaking up arguments
     if (space_flag == 0){
         uint8_t buf[FILENAME_SIZE];
+        // We don't want to overflow the buffer and cause a pagefault
+        if (command_length > FILENAME_SIZE){
+            sti();
+            return ERROR;
+        }
         copy_string(buf, command, command_length);
         buf[command_length] = '\0';
         fname = buf;
@@ -439,7 +443,7 @@ int32_t execute(const uint8_t* command) {
 */
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     //Check for invalid index
-    if (fd < 0 || fd > FILE_ARRAY_SIZE)
+    if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
     //Get current PCB
@@ -481,7 +485,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 */
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     //Check if a valid fd number
-    if (fd < 0 || fd > FILE_ARRAY_SIZE)
+    if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
     pcb_t * pcb_curr = get_curr_pcb();
@@ -571,7 +575,7 @@ int32_t open(const uint8_t* filename) {
 */
 int32_t close(int32_t fd) {
     //Check if valid fd number
-    if (fd < DYNAMIC_FILE_START || fd > FILE_ARRAY_SIZE)
+    if (fd < DYNAMIC_FILE_START || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
     pcb_t * pcb_curr = get_curr_pcb();
@@ -610,7 +614,7 @@ int32_t set_handler(int32_t signum, void* handler_address) {
 }
 
 /*
- * returns sig 
+ * returns sig
 */
 int32_t sigreturn(void) {
     return 0;
