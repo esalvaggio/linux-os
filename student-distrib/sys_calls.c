@@ -5,26 +5,31 @@
 #include "paging.h"
 #include "x86_desc.h"
 
-
+/* Filetypes */
 #define RTC_FILETYPE         0
 #define DIR_FILETYPE         1
 #define REG_FILETYPE         2
+/* Characters for executable checks */
 #define EXEC_CHECK_CHARS     4
 #define DELETE_CHAR       0x7F
 #define E_CHAR            0x45
 #define L_CHAR            0x4C
 #define F_CHAR            0x46
+/* Memory sizes */
 #define ADDR_8MB      0x800000
 #define ADDR_4MB      0x400000
 #define ADDR_8KB      0x002000
 #define ADDR_4KB      0x001000
+/* File system numbers*/
 #define FILE_ENTRY  0x08048000
 #define DYNAMIC_FILE_START   2
 #define ENTRY_POINT         24
 #define ENTRY_POINT_END     28
+/* Return values */
 #define SUCCESS              0
 #define ERROR               -1
-pcb_t* pcb;
+
+//i
 pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
 //Arrays for file operations pointer table
@@ -36,6 +41,13 @@ int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
 uint32_t user_stack_pointer = VIRTUAL_ADDRESS + STACK_PAGE_SIZE - FOUR_BYTE_ADDR;
 
+/*
+ * find_new_process()
+ * INPUTS: None
+ * OUTPUTS: Index of first open pcb slot
+ * Function iterates through the global pcb_processes Array
+ * and finds the first open slot (called in execute when making new pcb)
+*/
 int32_t find_new_process() {
     int i;
     for (i = 0; i < NUM_OF_PROCESSES; i++) {
@@ -49,6 +61,14 @@ int32_t find_new_process() {
     return ERROR;
 }
 
+/*
+ * create_new_pcb()
+ * INPUTS: process_num is the index of the new pcb in the array
+ * OUTPUTS: pointer to new pcb
+ * This function takes the index of where the new pcb is to be located
+ * in the pcb array and creates a new pcb (setting all files to unused)
+ * Side effects: new pcb is written into memory at location (8MB-(process*8kb))
+*/
 pcb_t* create_new_pcb(int32_t process_num) {
 
     /* Starts at address: 8MB - (process_num * 8KB) */
@@ -57,12 +77,14 @@ pcb_t* create_new_pcb(int32_t process_num) {
     new_pcb->mem_addr_start = ADDR_8MB - (process_num+1)*ADDR_8KB;
 
     int fa_index;
+    /* Initialize all files to unused */
     for (fa_index = DYNAMIC_FILE_START; fa_index < FILE_ARRAY_SIZE; fa_index++){
       /* Initialize each location in file array to unused */
       new_pcb->file_array[fa_index].flags = 0;
       new_pcb->file_array[fa_index].inode = -1;
       new_pcb->file_array[fa_index].file_pos = 0;
     }
+    /* Initialize stdin and stdout to in use and bound to terminal functions*/
     for (fa_index = 0; fa_index < DYNAMIC_FILE_START; fa_index++){
       new_pcb->file_array[fa_index].flags = 1;
       new_pcb->file_array[fa_index].inode = 0;
@@ -77,21 +99,20 @@ pcb_t* create_new_pcb(int32_t process_num) {
 }
 /*
  * halt()
+ * INPUTS: NONE
+ * OUTPUTS: NONE (jumps to execute)
+ * halt essentially tears down the current pcb and hands off control to the
+ * parent pcb. It also has to re enable paging for the previous pcb and re set
+ * ebp and the tss values.
+ * SIDE EFFECTS: changes ebp to what its value was at beginning of execute.
+ *               changes tss values to what they were in execute
+ *               removes current pcb
 */
 int32_t halt(uint8_t status) {
     /*
       1. Restore parent data
         - parent process number (most important)
-          -> look in PCB for this*/
-
-          /*
-          NONE OF THIS WORKS!!!!!!!
-          DONT TAKE ANY OF IT SERIOUSLY
-          THE PCB STUFF MIGHT WORK
-          WHO KNOWS
-
-          */
-    /*
+          -> look in PCB for this
     jumps into execute, restores eip
     */
     int index;
@@ -103,15 +124,13 @@ int32_t halt(uint8_t status) {
           if (pcb_processes[index]->in_use == 1){
 
               //first process does not have a parent so skip parent stuff
-              if(pcb_processes[index]->parent_pcb == 0x0)
-                {
-                break;
-              }
+              if(pcb_processes[index]->parent_pcb == 0x0) break;
+
               current_num = pcb_processes[index]->process_num;
               pcb_parent = (pcb_t *)pcb_processes[index]->parent_pcb;
               old_num = pcb_parent->process_num;
-              pcb_processes[index]->in_use = 0; //turn parent off
-                pcb_parent->in_use = 1; //turn child on
+              pcb_processes[index]->in_use = 0; //turn child off
+              pcb_parent->in_use = 1; //turn parent on
               break;
           }
         }
@@ -135,6 +154,7 @@ int32_t halt(uint8_t status) {
     //3
     int i;
     for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
+        //close all files
         (void)pcb_processes[current_num]->file_array[i].file_ops_table_ptr.close;
     }
     //4
@@ -150,7 +170,7 @@ int32_t halt(uint8_t status) {
 
     //Finally, Clear pcb_processes[current_num]
     pcb_processes[current_num] = 0x0;
-
+    //Changes ebp to value when we entered execute, and jump back to execute
     asm volatile ("                         \n\
                     movl %0, %%EBP          \n\
                     movl $0, %%eax          \n\
@@ -163,7 +183,14 @@ int32_t halt(uint8_t status) {
     return ERROR;
 }
 /*
-
+ * execute()
+ * INPUTS: command is a const pointer to an array of characters to be executed
+ * OUTPUTS: EAX will store the result of the execute. (Will most likely be 0)
+ *
+ * Execute is a monster of a function. First, it parses the input command and
+ * stores the command and its args in two new character buffers.
+ * Then, it takes the first 4 characters and compares them to the valid command
+ * list. It then enables paging and creates a new pcb to run the command.
 */
 int32_t execute(const uint8_t* command) {
 
@@ -352,12 +379,28 @@ int32_t execute(const uint8_t* command) {
                 );
    pcb_new->ebp = curr_ebp;
 
-  //order should be correct. Only moving into ax instead of eax. instead of esp, should be
-  //the user stack pointer variable which is the sum of the virtual address and page size,
-  //minus the four bits. We also pop somthing from the stack, or it with 0x200 and push it back
-  //(not sure why) then push hex 23 and the entry point variable. iret cause iret. ret cause
-  //it needs the return address that execute has. Call END_OF_EXECUTE in halt
+    /* Explanation of following assembly code:
+       We need to push 0x2B (which is the USER_DS defined in x86_desc.h:15)
+       into ax, ds, es, fs, and gs to properly set up the iret context.
 
+       Then we need to push that value onto the stack, along with:
+            user_stack_pointer
+            flags
+            0x23 (USER_CS, defined in x86_desc.h:14)
+            entry_point
+       At which case we call iret. Important note about the lines:
+                  popl %%eax
+                  orl$0x200, %%eax
+                  pushl %%eax
+          These lines pop the flags back off the stack, and or them with
+          the 10th bit (which will call an sti upon the iret, which is
+          needed because we have not left the cli defined at the top)
+    */
+
+    /*
+    HALT will jump to END_OF_EXECUTE tag, and perform
+    a leave ret. HALT restores the ebp of execute.
+    */
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -373,7 +416,6 @@ int32_t execute(const uint8_t* command) {
                     pushl $0x23             \n\
                     pushl %0                \n\
                     iret                    \n\
-                    addl $20, %%esp         \n\
                     END_OF_EXECUTE:         \n\
                     leave                   \n\
                     ret                     \n\
@@ -382,6 +424,7 @@ int32_t execute(const uint8_t* command) {
                     : "r"(entry_point), "r"(user_stack_pointer)
                     : "eax","edx"    // clobbered register
                   );
+
     return SUCCESS; //shouldn't get this far
 }
 /*
@@ -521,6 +564,10 @@ int32_t open(const uint8_t* filename) {
 }
 /*
  * close()
+ * INPUTS: fd is location of file in file array in pcb
+ * OUTPUTS: SUCCESS OR ERROR
+ * close simply calls a close function on the file called.
+ * SIDE EFFECTS: closes the file
 */
 int32_t close(int32_t fd) {
     //Check if valid fd number
@@ -538,18 +585,33 @@ int32_t close(int32_t fd) {
 
 }
 
+/*
+ * getargs()
+ * INPUTS: buf to store the arguments in
+ * nbytes: amount of bytes to store
+*/
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
     return 0;
 }
 
+/*
+ * vidmap()
+ * inputs: screen_start pointer to pointer of chars
+*/
 int32_t vidmap(uint8_t** screen_start) {
     return 0;
 }
-
+/*
+ * set_handler()
+ * not sure
+*/
 int32_t set_handler(int32_t signum, void* handler_address) {
     return 0;
 }
 
+/*
+ * returns sig 
+*/
 int32_t sigreturn(void) {
     return 0;
 }

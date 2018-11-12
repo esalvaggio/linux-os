@@ -49,6 +49,7 @@ sys_call_handler:
   popl %esi
   popl %edi
   popl %ebp
+  /* We pushed eax, but it stores return value */
   addl $4, %esp
 end:
   sti
