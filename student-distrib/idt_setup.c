@@ -1,111 +1,112 @@
 #include "sys_call_handler.h"
+#include "sys_calls.h"
 #include "lib.h"
 #include "idt_setup.h"
 
 /* Exception handlers */
 void divide_by_zero() {
   printf("EXCEPTION: division by zero.\n");
-  while(1);
+  halt(0);
 }
 
 void debug() {
   printf("debug exception\n");
-  while(1);
+  halt(0);
 }
 
 void not_used() {
   printf("not used exception\n");
-  while(1);
+  halt(0);
 }
 
 void breakpoint() {
   printf("breakpoint exception\n");
-  while(1);
+  halt(0);
 }
 
 void overflow() {
   printf("overflow\n");
-  while(1);
+  halt(0);
 }
 
 void bounds_check() {
   printf("bounds check exception\n");
-  while(1);
+  halt(0);
 }
 
 void invalid_opcode() {
   printf("invalid opcode\n");
-  while(1);
+  halt(0);
 }
 
 void device_not_available() {
   printf("device not available\n");
-  while(1);
+  halt(0);
 }
 
 void double_fault() {
   printf("double fault\n");
-  while(1);
+  halt(0);
 }
 
 void cop_seg_overrun() {
   printf("coprocessor segment overrun\n");
-  while(1);
+  halt(0);
 }
 
 void invalid_tss() {
   printf("invalid tss\n");
-  while(1);
+  halt(0);
 }
 
 void seg_not_present() {
   printf("segment not present\n");
-  while(1);
+  halt(0);
 }
 
 void stack_seg_fault() {
   printf("stack seg fault\n");
-  while(1);
+  halt(0);
 }
 
 void general_protection() {
   printf("general protection\n");
-  while(1);
+  halt(0);
 }
 
 void page_fault() {
   printf("EXCEPTION: Page fault.\n");
-  while(1);
+  halt(0);
 }
 
 void reserved() {
   printf("reserved\n");
-  while(1);
+  halt(0);
 }
 
 void floating_point_err() {
   printf("floating point error\n");
-  while(1);
+  halt(0);
 }
 
 void aligment_check_fault() {
   printf("aligment check fault\n");
-  while(1);
+  halt(0);
 }
 
 void machine_check() {
   printf("machine check\n");
-  while(1);
+  halt(0);
 }
 
 void simd_exception() {
   printf("simd floating point exeption\n");
-  while(1);
+  halt(0);
 }
 /*
 void system_call_handler() {
   printf("system call handler\n");
-  while(1);
+  halt(0);
 }
 */
 
