@@ -36,6 +36,8 @@ pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
 fotp_t rtc_funcs = {RTC_open, RTC_close, RTC_read, RTC_write};
 fotp_t key_funcs = {Terminal_Open, Terminal_Close, Terminal_Read, Terminal_Write};
+fotp_t stdin_func = {NULL, NULL, Terminal_Read, NULL};
+fotp_t stdout_func = {NULL, NULL, NULL, Terminal_Write};
 fotp_t dir_funcs = {dir_open, dir_close, dir_read, dir_write};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
@@ -89,8 +91,15 @@ pcb_t* create_new_pcb(int32_t process_num) {
       new_pcb->file_array[fa_index].flags = 1;
       new_pcb->file_array[fa_index].inode = 0;
       new_pcb->file_array[fa_index].file_pos = 0;
-      new_pcb->file_array[fa_index].file_ops_table_ptr = key_funcs;
-
+      //new_pcb->file_array[fa_index].file_ops_table_ptr = key_funcs;
+      if(fa_index == 0)
+      {
+        new_pcb->file_array[fa_index].file_ops_table_ptr = stdin_func;
+      }
+      else if(fa_index == 1)
+      {
+        new_pcb->file_array[fa_index].file_ops_table_ptr = stdout_func;
+      }
     }
     //Default is no parent
     new_pcb->parent_pcb = 0x0;
@@ -124,7 +133,11 @@ int32_t halt(uint8_t status) {
           if (pcb_processes[index]->in_use == 1){
 
               //first process does not have a parent so skip parent stuff
-              if(pcb_processes[index]->parent_pcb == 0x0) break;
+              if(pcb_processes[index]->parent_pcb == 0x0)
+              {
+                // return ERROR;
+               break;
+              }
 
               current_num = pcb_processes[index]->process_num;
               pcb_parent = (pcb_t *)pcb_processes[index]->parent_pcb;
@@ -456,6 +469,12 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     if (file_desc.file_pos >= inode->length && fd != 0)
         return 0;
     /* Make the correct read call for file type */
+
+    if(file_desc.file_ops_table_ptr.read == NULL)
+    {
+      return ERROR;
+    }
+
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 /*
@@ -483,6 +502,13 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     }
     /* Return 0 if we've reached the end of the file */
     /* Make the correct read call for file type */
+
+    if(file_desc.file_ops_table_ptr.write == NULL)
+    {
+      return ERROR;
+    }
+
+
     return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
 }
 /*
@@ -566,8 +592,14 @@ int32_t close(int32_t fd) {
 
     if (pcb_curr->file_array[fd].flags == 1){
       pcb_curr->file_array[fd].flags = 0;
+
+      if(pcb_curr->file_array[fd].file_ops_table_ptr.close == NULL)
+      {
+        return ERROR;
+      }
+
       return pcb_curr->file_array[fd].file_ops_table_ptr.close(fd);
-      return SUCCESS;
+      // return SUCCESS;
     }
     return ERROR;
 

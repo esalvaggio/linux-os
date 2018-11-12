@@ -196,6 +196,23 @@ if(buf == NULL || nbytes < 0) //invalid input
   return FAILURE;
 }
 
+
+// int y;
+// int found_enter = 0;
+// for(y = 0; y < nbytes; y++)
+// {
+//   char c = ((char *)buf)[y];
+//   if(c == '\n')
+//   {
+//     found_enter = 1;
+//   }
+// }
+//
+// if(found_enter == 0)
+// {
+//   return FAILURE;
+// }
+
 while(!enter_flag); //wait for enter to be pressed to do anything
 
   int x;
@@ -227,6 +244,13 @@ enter_flag = 0;
 */
 int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 {
+
+if(buf == NULL || nbytes < 0)
+{
+  return FAILURE;
+}
+
+
 // int enter_found = 0;
 // int x;
 // for(x = 0; x < nbytes; x++)
@@ -253,7 +277,26 @@ int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 //     nbytes = old_index;
 //   }
 // }
+
+
 int x;
+
+for(x = 0; x < nbytes; x++)
+{
+  char c = ((char *)buf)[x];
+  int ascii = (int)c;
+  // printf("%c \n", c);
+   //printf("%d  ", ascii);
+  // if((ascii < 32 && ascii != 0) || ascii > 127)
+  // {
+  //   return -1;
+  // }
+  if(ascii < 0)
+  {
+    return FAILURE;
+  }
+}
+
   for(x = 0; x < nbytes; x++)
   {
     printf("%c", ((char *)buf)[x]); //print
