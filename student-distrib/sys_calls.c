@@ -619,6 +619,13 @@ int32_t close(int32_t fd) {
  * nbytes: amount of bytes to store
 */
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
+    /*	
+    pcb_t * pcb_curr = get_curr_pcb();
+    psuedecode:
+        for i in pcb->args:
+	    buf[i] = pcb->args[i]
+	return SUCCESS
+    */
     return ERROR;
 }
 
