@@ -223,7 +223,7 @@ int32_t execute(const uint8_t* command) {
     int32_t command_idx, arg_buf_len;
     int32_t command_length = strlen((int8_t*)command);
     uint8_t* fname;
-    uint8_t* args;
+    uint8_t * args = NULL;
     uint8_t space_flag = 0;
 
     for (command_idx = 0; command_idx < command_length; command_idx++) {
@@ -238,17 +238,20 @@ int32_t execute(const uint8_t* command) {
             copy_string(buf, command, command_idx);
             buf[command_idx] = '\0';
             fname = buf;
-
             /* Get arguments */
             arg_buf_len = command_length - (command_idx + 1);
             uint8_t arg_buf[arg_buf_len];
             copy_string(arg_buf, &command[command_idx + 1], arg_buf_len);
             arg_buf[arg_buf_len] = '\0';
-            args = arg_buf;
+            args = &arg_buf[0]; //get address of first char in args
+            // for(y = 0; y < arg_buf_len; y++)
+            // {
+            //   printf("%c \n", args[y]);
+            // }
             break;
         }
     }
-    //special case if there is no space breaking up arguments
+    //special case if there is no arguments
     if (space_flag == 0){
         uint8_t buf[FILENAME_SIZE];
         // We don't want to overflow the buffer and cause a pagefault
@@ -260,7 +263,6 @@ int32_t execute(const uint8_t* command) {
         buf[command_length] = '\0';
         fname = buf;
     }
-
 
     /*  2. Executable Check   ---
           - check if file is an executable
@@ -274,7 +276,9 @@ int32_t execute(const uint8_t* command) {
     if (read_dentry_by_name(fname, &dentry) < 0) {
           sti();
           return ERROR;
-    }
+      }
+
+
 
     //ex_buf stores first 4 bytes to check it is a valid command
     int8_t ex_buf[EXEC_CHECK_CHARS];
@@ -359,11 +363,14 @@ int32_t execute(const uint8_t* command) {
     }
     pcb_processes[process_num]->in_use = 1;
 
-    /* Copy arguments into pcb */
-    if (space_flag == 1){
-      copy_string(pcb_new->args, args, arg_buf_len);
 
+
+    /* Copy arguments into pcb */
+    if(space_flag == 1)
+    {
+      copy_string(pcb_new->args, args, arg_buf_len);
     }
+
     /*
       6. context switch
           - change priviledge level
@@ -619,14 +626,50 @@ int32_t close(int32_t fd) {
  * nbytes: amount of bytes to store
 */
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
-    /*	
+    /*
     pcb_t * pcb_curr = get_curr_pcb();
     psuedecode:
         for i in pcb->args:
 	    buf[i] = pcb->args[i]
 	return SUCCESS
     */
-    return ERROR;
+    printf("Is get args called? \n");
+
+    if(buf == NULL || nbytes < 0) //invalid parameters
+    {
+      return ERROR;
+    }
+
+    pcb_t * curr_pcb = get_curr_pcb(); //get PCB
+
+
+    if(curr_pcb->args == NULL) //PCB has no args, failure
+    {
+      return ERROR;
+    }
+    printf("Got PCB \n");
+
+    int x;
+    int args_length = 0;
+    while (curr_pcb->args[args_length] != '\0') //calculate length of args
+    {
+      args_length++;
+    }
+
+    printf("Got length of args \n");
+
+
+    if(nbytes < args_length) //if buffer is too small for args, return failure
+    {
+      return ERROR;
+    }
+
+    for(x = 0; x < nbytes; x++)
+    {
+      buf[x] = curr_pcb->args[x]; //store args into given buffer
+    }
+    printf("Successfully copied args to buffer");
+    return SUCCESS; //if we made it here it was successful
 }
 
 /*
