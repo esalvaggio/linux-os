@@ -220,17 +220,20 @@ int32_t execute(const uint8_t* command) {
       1. Parse  ---
           - command: ["filename" + " " + "string of args"]
     */
-    int32_t command_idx, arg_buf_len;
+    int32_t command_idx;
+    int32_t arg_buf_len = 0;
     int32_t command_length = strlen((int8_t*)command);
     uint8_t* fname;
     uint8_t * args = NULL;
+    uint8_t arg_buf[ARGS_LEN];
+    uint8_t buf[FILENAME_SIZE];
+
     uint8_t space_flag = 0;
 
     for (command_idx = 0; command_idx < command_length; command_idx++) {
         if (command[command_idx] == ' ') {
             space_flag = 1;
             /* Get filename */
-            uint8_t buf[FILENAME_SIZE];
             if (command_length > FILENAME_SIZE){
                 sti();
                 return ERROR;
@@ -240,7 +243,6 @@ int32_t execute(const uint8_t* command) {
             fname = buf;
             /* Get arguments */
             arg_buf_len = command_length - (command_idx + 1);
-            uint8_t arg_buf[arg_buf_len];
             copy_string(arg_buf, &command[command_idx + 1], arg_buf_len);
             arg_buf[arg_buf_len] = '\0';
             args = &arg_buf[0]; //get address of first char in args
@@ -253,7 +255,6 @@ int32_t execute(const uint8_t* command) {
     }
     //special case if there is no arguments
     if (space_flag == 0){
-        uint8_t buf[FILENAME_SIZE];
         // We don't want to overflow the buffer and cause a pagefault
         if (command_length > FILENAME_SIZE){
             sti();
@@ -368,7 +369,7 @@ int32_t execute(const uint8_t* command) {
     /* Copy arguments into pcb */
     if(space_flag == 1)
     {
-      copy_string(pcb_new->args, args, arg_buf_len);
+      copy_string(pcb_new->args, arg_buf, arg_buf_len);
     }
 
     /*
@@ -626,14 +627,6 @@ int32_t close(int32_t fd) {
  * nbytes: amount of bytes to store
 */
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
-    /*
-    pcb_t * pcb_curr = get_curr_pcb();
-    psuedecode:
-        for i in pcb->args:
-	    buf[i] = pcb->args[i]
-	return SUCCESS
-    */
-    printf("Is get args called? \n");
 
     if(buf == NULL || nbytes < 0) //invalid parameters
     {
@@ -642,12 +635,10 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
 
     pcb_t * curr_pcb = get_curr_pcb(); //get PCB
 
-
     if(curr_pcb->args == NULL) //PCB has no args, failure
     {
       return ERROR;
     }
-    printf("Got PCB \n");
 
     int x;
     int args_length = 0;
@@ -655,8 +646,6 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
     {
       args_length++;
     }
-
-    printf("Got length of args \n");
 
 
     if(nbytes < args_length) //if buffer is too small for args, return failure
@@ -668,7 +657,7 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
     {
       buf[x] = curr_pcb->args[x]; //store args into given buffer
     }
-    printf("Successfully copied args to buffer");
+
     return SUCCESS; //if we made it here it was successful
 }
 
