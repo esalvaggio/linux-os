@@ -482,15 +482,22 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     inode_t* inode = (inode_t*)(boot_block + file_desc.inode);
 
     /* Return 0 if we've reached the end of the file */
-    if (file_desc.file_pos >= inode->length && fd != 0)
-        return 0;
+    //printf("inode length %d\n file: %d\n", inode->length, file_desc.file_pos);
+
+
+    /*
+    Looks like we have a problem with inode. On cat frame0.txt, when frame0.txt
+    is read, file pos and inode->length are both 0, so it returns and error.
+    */
+
+    //if (file_desc.file_pos >= inode->length && fd != 0)
+    //  return -1;
     /* Make the correct read call for file type */
 
     if(file_desc.file_ops_table_ptr.read == NULL)
     {
       return ERROR;
     }
-
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 /*
