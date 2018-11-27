@@ -25,12 +25,14 @@
 #define DYNAMIC_FILE_START   2
 #define ENTRY_POINT         24
 #define ENTRY_POINT_END     28
+#define MAX_SHELLS           2
 /* Return values */
 #define SUCCESS              0
 #define ERROR               -1
 
 /* Global PCB file array */
-pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+// pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0};
 
 //Arrays for file operations pointer table
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
@@ -43,6 +45,9 @@ fotp_t no_fotp = {NULL, NULL, NULL, NULL};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
 uint32_t user_stack_pointer = VIRTUAL_ADDRESS + STACK_PAGE_SIZE - FOUR_BYTE_ADDR;
+
+/* Keeps track of the current number of shells */
+int curr_num_of_shells = 0;
 
 /*
  * find_new_process()
@@ -59,7 +64,6 @@ int32_t find_new_process() {
           return i;
         }
     }
-
     /* No pcb's open */
     return ERROR;
 }
@@ -105,6 +109,7 @@ pcb_t* create_new_pcb(int32_t process_num) {
     }
     //Default is no parent
     new_pcb->parent_pcb = 0x0;
+    new_pcb->args[0] = '\0';
 
     return new_pcb;
 }
@@ -216,41 +221,49 @@ int32_t halt(uint8_t status) {
 int32_t execute(const uint8_t* command) {
     if(command == NULL) return ERROR;
     cli();
+
+    //Find new process index
+    int32_t process_num = find_new_process();
+    if (process_num == ERROR) {
+        printf("Maximum processes running... Cannot execute.\n");
+        sti();
+        return 0;
+    }
     /* Instructions
       1. Parse  ---
           - command: ["filename" + " " + "string of args"]
     */
-    int32_t command_idx, arg_buf_len;
+    int32_t command_idx;
+    int32_t arg_buf_len = 0;
     int32_t command_length = strlen((int8_t*)command);
     uint8_t* fname;
-    uint8_t* args;
+    uint8_t * args = NULL;
+    uint8_t arg_buf[ARGS_LEN];
+    uint8_t buf[FILENAME_SIZE];
+
     uint8_t space_flag = 0;
 
     for (command_idx = 0; command_idx < command_length; command_idx++) {
         if (command[command_idx] == ' ') {
             space_flag = 1;
             /* Get filename */
-            uint8_t buf[FILENAME_SIZE];
-            if (command_length > FILENAME_SIZE){
+            if (command_length >= ARGS_LEN){
                 sti();
                 return ERROR;
             }
             copy_string(buf, command, command_idx);
             buf[command_idx] = '\0';
             fname = buf;
-
             /* Get arguments */
             arg_buf_len = command_length - (command_idx + 1);
-            uint8_t arg_buf[arg_buf_len];
             copy_string(arg_buf, &command[command_idx + 1], arg_buf_len);
             arg_buf[arg_buf_len] = '\0';
-            args = arg_buf;
+            args = &arg_buf[0]; //get address of first char in args
             break;
         }
     }
-    //special case if there is no space breaking up arguments
+    //special case if there is no arguments
     if (space_flag == 0){
-        uint8_t buf[FILENAME_SIZE];
         // We don't want to overflow the buffer and cause a pagefault
         if (command_length > FILENAME_SIZE){
             sti();
@@ -260,7 +273,6 @@ int32_t execute(const uint8_t* command) {
         buf[command_length] = '\0';
         fname = buf;
     }
-
 
     /*  2. Executable Check   ---
           - check if file is an executable
@@ -274,7 +286,9 @@ int32_t execute(const uint8_t* command) {
     if (read_dentry_by_name(fname, &dentry) < 0) {
           sti();
           return ERROR;
-    }
+      }
+
+
 
     //ex_buf stores first 4 bytes to check it is a valid command
     int8_t ex_buf[EXEC_CHECK_CHARS];
@@ -296,8 +310,6 @@ int32_t execute(const uint8_t* command) {
     }
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
-    //Find new process index
-    int32_t process_num = find_new_process();
 
     /*
       3. Paging
@@ -359,11 +371,14 @@ int32_t execute(const uint8_t* command) {
     }
     pcb_processes[process_num]->in_use = 1;
 
-    /* Copy arguments into pcb */
-    if (space_flag == 1){
-      copy_string(pcb_new->args, args, arg_buf_len);
 
+
+    /* Copy arguments into pcb */
+    if(space_flag == 1)
+    {
+      copy_string(pcb_new->args, arg_buf, ARGS_LEN);
     }
+
     /*
       6. context switch
           - change priviledge level
@@ -456,6 +471,7 @@ int32_t execute(const uint8_t* command) {
  * SIDE EFFECTS: updates the current file's position
 */
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
+
     //Check for invalid index
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
@@ -464,25 +480,21 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
 
-
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
     //If file descriptor is not open, error
     if (file_desc.flags == 0){
       return ERROR;
     }
-    inode_t* inode = (inode_t*)(boot_block + file_desc.inode);
 
-    /* Return 0 if we've reached the end of the file */
-    if (file_desc.file_pos >= inode->length && fd != 0)
-        return 0;
     /* Make the correct read call for file type */
-
     if(file_desc.file_ops_table_ptr.read == NULL)
     {
       return ERROR;
     }
 
+    /* The corresponding read call checks if we have reached the end
+        of the file */
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 /*
@@ -495,13 +507,13 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
  * Side effects: pcb is changed to active pcb
 */
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
+
     //Check if a valid fd number
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
-    // Terminal_Read(0,buf, nbytes);
 
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
@@ -534,6 +546,7 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
  *    new file descriptor
 */
 int32_t open(const uint8_t* filename) {
+
     dentry_t dentry;
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
@@ -615,30 +628,67 @@ int32_t close(int32_t fd) {
 
 /*
  * getargs()
- * INPUTS: buf to store the arguments in
- * nbytes: amount of bytes to store
+ * INPUTS: buf - stores the arguments
+ *         nbytes - amount of bytes to read into buf
+ * OUTPUTS: -1 if there are no arguments, 0 on success.
+ * This functions stores the command line arguments into the buffer provided.
+ * We go to the current pcb and retrieve the arguments from there.
 */
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
-    return ERROR;
+
+    if(buf == NULL || nbytes < 0) //invalid parameters
+        return ERROR;
+
+    pcb_t * curr_pcb = get_curr_pcb(); //get PCB
+    if(curr_pcb->args == NULL) //PCB has no args, failure
+        return ERROR;
+
+    int x;
+    int args_length = 0;
+    while (curr_pcb->args[args_length] != '\0') //calculate length of args
+        args_length++;
+
+    if(nbytes < args_length) //if buffer is too small for args, return failure
+        return ERROR;
+
+    for(x = 0; x < nbytes; x++)
+        buf[x] = curr_pcb->args[x]; //store args into given buffer
+
+    return SUCCESS; //if we made it here it was successful
 }
 
 /*
  * vidmap()
- * inputs: screen_start pointer to pointer of chars
+ * INPUTS: screen_start - virtual address to where we want to map video memory
+ * OUTPUTS: the start of video memory address
+ * This function maps the text-mode video memory into user space at a pre-set
+ * virtual address. This requires us to create a new 4KB page.
 */
 int32_t vidmap(uint8_t** screen_start) {
+  if(screen_start == NULL){ //null check
     return ERROR;
+  }
+
+  if(screen_start >= (uint8_t **)ADDR_4MB && screen_start <= (uint8_t **)ADDR_8MB) //kernel memory check
+  {
+    return ERROR;
+  }
+
+  page_dir_init_fourkb((uint32_t)VIDMEM_ADDR,(uint32_t)VIDEO);
+  *screen_start = (uint8_t*)VIDMEM_ADDR;
+  return VIDMEM_ADDR;
 }
 /*
  * set_handler()
- * not sure
+ * -- extra credit --
 */
 int32_t set_handler(int32_t signum, void* handler_address) {
     return ERROR;
 }
 
 /*
- * returns sig
+ * sigreturn()
+ * -- extra credit --
 */
 int32_t sigreturn(void) {
     return ERROR;

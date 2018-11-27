@@ -4,10 +4,12 @@
 #include "types.h"
 
 #define FILE_ARRAY_SIZE     8
-#define NUM_OF_PROCESSES    8
+#define NUM_OF_PROCESSES    2
 #define VIRTUAL_ADDRESS     0x8000000
 #define STACK_PAGE_SIZE     0x400000
 #define FOUR_BYTE_ADDR      4
+#define ARGS_LEN            1024
+#define VIDMEM_ADDR         0x8400000
 //pointer is four bytes so you want address of the pointer
 
 #ifndef ASM
@@ -44,7 +46,7 @@ typedef struct pcb {
     fd_t file_array[FILE_ARRAY_SIZE];
     int32_t mem_addr_start;
     int32_t parent_pcb;
-    uint8_t* args;
+    uint8_t args[ARGS_LEN];
     int8_t process_num;
     int8_t in_use;
     int32_t esp;
