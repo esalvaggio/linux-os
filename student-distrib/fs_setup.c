@@ -192,9 +192,9 @@ int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
     pcb_t* curr_pcb = get_curr_pcb();
     fd_t* file_desc = &curr_pcb->file_array[fd];
     /* Read up to "length" */
-    int32_t bytes_read = read_data(dir.inode_num, file_desc->file_pos, buf, nbytes);
+    int32_t bytes_read = read_data(file_desc->inode, file_desc->file_pos, buf, nbytes);
     /* Update the file position after reading */
-    file_desc->file_pos = file_desc->file_pos + bytes_read;
+    file_desc->file_pos += bytes_read;
     return bytes_read;
 }
 

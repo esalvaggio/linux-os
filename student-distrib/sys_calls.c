@@ -475,7 +475,6 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
-
     //Get current PCB
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
@@ -507,13 +506,13 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
  * Side effects: pcb is changed to active pcb
 */
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
+
     //Check if a valid fd number
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
-    // Terminal_Read(0,buf, nbytes);
 
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
