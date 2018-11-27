@@ -221,6 +221,14 @@ int32_t halt(uint8_t status) {
 int32_t execute(const uint8_t* command) {
     if(command == NULL) return ERROR;
     cli();
+
+    //Find new process index
+    int32_t process_num = find_new_process();
+    if (process_num == ERROR) {
+        printf("Maximum processes running... Cannot execute.\n");
+        sti();
+        return 0;
+    }
     /* Instructions
       1. Parse  ---
           - command: ["filename" + " " + "string of args"]
@@ -302,13 +310,6 @@ int32_t execute(const uint8_t* command) {
     }
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
-    //Find new process index
-    int32_t process_num = find_new_process();
-    if (process_num == ERROR) {
-        printf("Maximum processes running... Cannot execute.\n");
-        return 0;
-    }
-
 
     /*
       3. Paging
@@ -627,8 +628,11 @@ int32_t close(int32_t fd) {
 
 /*
  * getargs()
- * INPUTS: buf to store the arguments in
- * nbytes: amount of bytes to store
+ * INPUTS: buf - stores the arguments
+ *         nbytes - amount of bytes to read into buf
+ * OUTPUTS: -1 if there are no arguments, 0 on success.
+ * This functions stores the command line arguments into the buffer provided.
+ * We go to the current pcb and retrieve the arguments from there.
 */
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
 
@@ -650,13 +654,15 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
     for(x = 0; x < nbytes; x++)
         buf[x] = curr_pcb->args[x]; //store args into given buffer
 
-    // buf[x] = '\0';
     return SUCCESS; //if we made it here it was successful
 }
 
 /*
  * vidmap()
- * inputs: screen_start pointer to pointer of chars
+ * INPUTS: screen_start - virtual address to where we want to map video memory
+ * OUTPUTS: the start of video memory address
+ * This function maps the text-mode video memory into user space at a pre-set
+ * virtual address. This requires us to create a new 4KB page.
 */
 int32_t vidmap(uint8_t** screen_start) {
   if(screen_start == NULL){ //null check
@@ -674,14 +680,15 @@ int32_t vidmap(uint8_t** screen_start) {
 }
 /*
  * set_handler()
- * not sure
+ * -- extra credit --
 */
 int32_t set_handler(int32_t signum, void* handler_address) {
     return ERROR;
 }
 
 /*
- * returns sig
+ * sigreturn()
+ * -- extra credit --
 */
 int32_t sigreturn(void) {
     return ERROR;
