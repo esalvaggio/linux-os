@@ -32,9 +32,7 @@ int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry) {
     int32_t entry_index;
     dentry_t dir_entry;
 
-    uint32_t len = strlen((int8_t*)fname);
-    printf("str_len: %d\n", len);
-    if (len > FILENAME_SIZE)
+    if (strlen((int8_t*)fname) > FILENAME_SIZE)
         return -1;
 
     for (entry_index = 0; entry_index < boot_block->dir_count; entry_index++) {

@@ -240,7 +240,7 @@ int32_t execute(const uint8_t* command) {
         if (command[command_idx] == ' ') {
             space_flag = 1;
             /* Get filename */
-            if (command_length > FILENAME_SIZE){
+            if (command_length >= ARGS_LEN){
                 sti();
                 return ERROR;
             }

@@ -8,7 +8,7 @@
 #define VIRTUAL_ADDRESS     0x8000000
 #define STACK_PAGE_SIZE     0x400000
 #define FOUR_BYTE_ADDR      4
-#define ARGS_LEN            128
+#define ARGS_LEN            1024
 //pointer is four bytes so you want address of the pointer
 
 #ifndef ASM
