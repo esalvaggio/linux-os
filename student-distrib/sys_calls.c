@@ -25,12 +25,14 @@
 #define DYNAMIC_FILE_START   2
 #define ENTRY_POINT         24
 #define ENTRY_POINT_END     28
+#define MAX_SHELLS           2
 /* Return values */
 #define SUCCESS              0
 #define ERROR               -1
 
 /* Global PCB file array */
-pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+// pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0};
 
 //Arrays for file operations pointer table
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
@@ -43,6 +45,9 @@ fotp_t no_fotp = {NULL, NULL, NULL, NULL};
 int8_t executable_check[EXEC_CHECK_CHARS] = {DELETE_CHAR, E_CHAR, L_CHAR, F_CHAR};
 // first 4 bytes (0x7f, 0x45, 0x4c, 0x46)
 uint32_t user_stack_pointer = VIRTUAL_ADDRESS + STACK_PAGE_SIZE - FOUR_BYTE_ADDR;
+
+/* Keeps track of the current number of shells */
+int curr_num_of_shells = 0;
 
 /*
  * find_new_process()
@@ -105,6 +110,7 @@ pcb_t* create_new_pcb(int32_t process_num) {
     }
     //Default is no parent
     new_pcb->parent_pcb = 0x0;
+    new_pcb->args[0] = '\0';
 
     return new_pcb;
 }
@@ -246,10 +252,6 @@ int32_t execute(const uint8_t* command) {
             copy_string(arg_buf, &command[command_idx + 1], arg_buf_len);
             arg_buf[arg_buf_len] = '\0';
             args = &arg_buf[0]; //get address of first char in args
-            // for(y = 0; y < arg_buf_len; y++)
-            // {
-            //   printf("%c \n", args[y]);
-            // }
             break;
         }
     }
@@ -303,6 +305,10 @@ int32_t execute(const uint8_t* command) {
     uint32_t entry_point = *((uint32_t*)ex_buf);
     //Find new process index
     int32_t process_num = find_new_process();
+    if (process_num == ERROR) {
+        printf("Maximum processes running... Cannot execute.\n");
+        return 0;
+    }
 
     /*
       3. Paging
@@ -369,7 +375,7 @@ int32_t execute(const uint8_t* command) {
     /* Copy arguments into pcb */
     if(space_flag == 1)
     {
-      copy_string(pcb_new->args, arg_buf, arg_buf_len);
+      copy_string(pcb_new->args, arg_buf, ARGS_LEN);
     }
 
     /*
@@ -464,6 +470,7 @@ int32_t execute(const uint8_t* command) {
  * SIDE EFFECTS: updates the current file's position
 */
 int32_t read(int32_t fd, void* buf, int32_t nbytes) {
+
     //Check for invalid index
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
@@ -472,32 +479,21 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
 
-
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
     //If file descriptor is not open, error
     if (file_desc.flags == 0){
       return ERROR;
     }
-    inode_t* inode = (inode_t*)(boot_block + file_desc.inode);
 
-    /* Return 0 if we've reached the end of the file */
-    //printf("inode length %d\n file: %d\n", inode->length, file_desc.file_pos);
-
-
-    /*
-    Looks like we have a problem with inode. On cat frame0.txt, when frame0.txt
-    is read, file pos and inode->length are both 0, so it returns and error.
-    */
-
-    //if (file_desc.file_pos >= inode->length && fd != 0)
-    //  return -1;
     /* Make the correct read call for file type */
-
     if(file_desc.file_ops_table_ptr.read == NULL)
     {
       return ERROR;
     }
+
+    /* The corresponding read call checks if we have reached the end
+        of the file */
     return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 /*
@@ -549,6 +545,7 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
  *    new file descriptor
 */
 int32_t open(const uint8_t* filename) {
+
     dentry_t dentry;
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
@@ -636,35 +633,24 @@ int32_t close(int32_t fd) {
 int32_t getargs(uint8_t* buf, int32_t nbytes) {
 
     if(buf == NULL || nbytes < 0) //invalid parameters
-    {
-      return ERROR;
-    }
+        return ERROR;
 
     pcb_t * curr_pcb = get_curr_pcb(); //get PCB
-
     if(curr_pcb->args == NULL) //PCB has no args, failure
-    {
-      return ERROR;
-    }
+        return ERROR;
 
     int x;
     int args_length = 0;
     while (curr_pcb->args[args_length] != '\0') //calculate length of args
-    {
-      args_length++;
-    }
-
+        args_length++;
 
     if(nbytes < args_length) //if buffer is too small for args, return failure
-    {
-      return ERROR;
-    }
+        return ERROR;
 
     for(x = 0; x < nbytes; x++)
-    {
-      buf[x] = curr_pcb->args[x]; //store args into given buffer
-    }
+        buf[x] = curr_pcb->args[x]; //store args into given buffer
 
+    // buf[x] = '\0';
     return SUCCESS; //if we made it here it was successful
 }
 

@@ -196,23 +196,6 @@ if(buf == NULL || nbytes < 0) //invalid input
   return FAILURE;
 }
 
-
-// int y;
-// int found_enter = 0;
-// for(y = 0; y < nbytes; y++)
-// {
-//   char c = ((char *)buf)[y];
-//   if(c == '\n')
-//   {
-//     found_enter = 1;
-//   }
-// }
-//
-// if(found_enter == 0)
-// {
-//   return FAILURE;
-// }
-
 while(!enter_flag); //wait for enter to be pressed to do anything
 
   int x;
@@ -250,52 +233,7 @@ if(buf == NULL || nbytes < 0)
   return FAILURE;
 }
 
-
-// int enter_found = 0;
-// int x;
-// for(x = 0; x < nbytes; x++)
-// {
-//   if(((char *)buf)[x] == '\n' )
-//   {
-//     enter_found = 1;
-//   }
-// }
-//
-// if(old_index != 0)
-// {
-//   if(buf == NULL || nbytes < 0) //invalid input
-//   {
-//     return FAILURE;
-//   }
-//   if(nbytes > BUFFER_LENGTH) //if they try to read more than in the buffer, set the num bytes to where enter is
-//   {
-//     nbytes = old_index;
-//   }
-//
-//   else if(nbytes > old_index) //if they try to read more than in the buffer, set the num bytes to where enter is
-//   {
-//     nbytes = old_index;
-//   }
-// }
-
-
 int x;
-
-for(x = 0; x < nbytes; x++)
-{
-  char c = ((char *)buf)[x];
-  int ascii = (int)c;
-  // printf("%c \n", c);
-   //printf("%d  ", ascii);
-  // if((ascii < 32 && ascii != 0) || ascii > 127)
-  // {
-  //   return -1;
-  // }
-  if(ascii < 0)
-  {
-    return FAILURE;
-  }
-}
 
   for(x = 0; x < nbytes; x++)
   {

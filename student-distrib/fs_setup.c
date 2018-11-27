@@ -32,6 +32,11 @@ int32_t read_dentry_by_name(const uint8_t* fname, dentry_t* dentry) {
     int32_t entry_index;
     dentry_t dir_entry;
 
+    uint32_t len = strlen((int8_t*)fname);
+    printf("str_len: %d\n", len);
+    if (len > FILENAME_SIZE)
+        return -1;
+
     for (entry_index = 0; entry_index < boot_block->dir_count; entry_index++) {
         /* Obtain the directory entry */
         dir_entry = boot_block->d_entries[entry_index];
@@ -93,28 +98,31 @@ int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length) {
     if (inode < 0 || inode >= boot_block->inode_count)
         return -1;
 
+    inode_t* inode_block = (inode_t*)(boot_block + inode + 1);
     /* Check if we've reached the end of the file */
-    if (offset >= length)
+    if (offset >= inode_block->length)
         return 0;
 
+    if (offset + length >= inode_block->length)
+        length = inode_block->length - offset;
+
     /* Calculate how many data blocks are used */
-    inode_t* inode_block = (inode_t*)(boot_block + inode + 1);
     int32_t num_data_blocks = (inode_block->length/BLOCK_SIZE) + 1;
-    /* We can only read up to the length of the file itself */
-    if (length > inode_block->length)
-        length = inode_block->length;
+    // /* We can only read up to the length of the file itself */
+    // if (length > inode_block->length)
+    //     length = inode_block->length;
 
     int32_t block_index, bytes_read = 0;
-    int32_t data_index = bytes_read + offset;
+    int32_t data_index = offset % BLOCK_SIZE;
     /* Read from data block */
-    for (block_index = 0; block_index < num_data_blocks; block_index++) {
+    for (block_index = offset/BLOCK_SIZE; block_index < num_data_blocks; block_index++) {
         /* Keeps track of index within a data_block*/
         int32_t db_index = inode_block->data_block_num[block_index];
         uint8_t* data_block = (uint8_t*)(boot_block + boot_block->inode_count + db_index + 1);
         /* Determines when we need to go to the next data block */
         while (((bytes_read + offset) % BLOCK_SIZE != 0) || (data_index == 0)) {
-            /* Read up to "length - offset" bytes */
-            if (bytes_read >= length - offset){
+            /* Read up to "length" bytes */
+            if (bytes_read >= length){
                 return bytes_read;
               }
             /* Read data and write it to the buffer */
@@ -186,10 +194,9 @@ int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
     pcb_t* curr_pcb = get_curr_pcb();
     fd_t* file_desc = &curr_pcb->file_array[fd];
     /* Read up to "length" */
-    int32_t length = nbytes + file_desc->file_pos;
-    int32_t bytes_read = read_data(dir.inode_num, file_desc->file_pos, buf, length);
+    int32_t bytes_read = read_data(dir.inode_num, file_desc->file_pos, buf, nbytes);
     /* Update the file position after reading */
-    file_desc->file_pos = length;
+    file_desc->file_pos = file_desc->file_pos + bytes_read;
     return bytes_read;
 }
 
