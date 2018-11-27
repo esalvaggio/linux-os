@@ -659,7 +659,12 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
  * inputs: screen_start pointer to pointer of chars
 */
 int32_t vidmap(uint8_t** screen_start) {
+  if(screen_start == NULL){
     return ERROR;
+  }
+  page_dir_init_fourkb((uint32_t)VIDMEM_ADDR,(uint32_t)VIDEO);
+  *screen_start = (uint8_t*)VIDMEM_ADDR;
+  return VIDMEM_ADDR;
 }
 /*
  * set_handler()

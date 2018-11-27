@@ -18,6 +18,7 @@ void Paging_Init(){
   for(i = 0; i<TABLE_SIZE; i++){
       page_directory[i] = 0; //change 0 to correct initialization value
       page_table[i] = 0; //change
+      vidmap_pagetable[i] = 0;
   }
   page_directory[0] = ((uint32_t) page_table) + RE_WR + USER + PRESENT_BIT; //4kB
   page_directory[1] = KERNEL_LOAD_ADDR + PAGE_SIZE + RE_WR + PRESENT_BIT; //Kernel 4MB address
@@ -48,8 +49,15 @@ void page_dir_init(uint32_t virtual_addr, uint32_t phys_addr){
   uint32_t index = virtual_addr / FOURMB;
   page_directory[index] = phys_addr + PAGE_SIZE + RE_WR + PRESENT_BIT + USER;
   flushTLB();
-
 }
+
+void page_dir_init_fourkb(uint32_t virtual_addr, uint32_t phys_addr){
+  uint32_t index = virtual_addr / FOURMB;
+  page_directory[index] = ((uint32_t) vidmap_pagetable) + RE_WR + USER + PRESENT_BIT;
+  vidmap_pagetable[0] = phys_addr + RE_WR + USER + PRESENT_BIT;
+  flushTLB();
+}
+
 void flushTLB(void){
   asm volatile ("                           \n\
                     movl	%%cr3,%%eax       \n\
