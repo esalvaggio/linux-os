@@ -64,7 +64,6 @@ int32_t find_new_process() {
           return i;
         }
     }
-
     /* No pcb's open */
     return ERROR;
 }
@@ -310,6 +309,7 @@ int32_t execute(const uint8_t* command) {
         return 0;
     }
 
+
     /*
       3. Paging
           - each process gets its own 4 MB page */
@@ -474,6 +474,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
     //Check for invalid index
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
+
 
     //Get current PCB
     pcb_t * pcb_curr = get_curr_pcb();
@@ -659,9 +660,15 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
  * inputs: screen_start pointer to pointer of chars
 */
 int32_t vidmap(uint8_t** screen_start) {
-  if(screen_start == NULL){
+  if(screen_start == NULL){ //null check
     return ERROR;
   }
+
+  if(screen_start >= (uint8_t **)ADDR_4MB && screen_start <= (uint8_t **)ADDR_8MB) //kernel memory check
+  {
+    return ERROR;
+  }
+
   page_dir_init_fourkb((uint32_t)VIDMEM_ADDR,(uint32_t)VIDEO);
   *screen_start = (uint8_t*)VIDMEM_ADDR;
   return VIDMEM_ADDR;
