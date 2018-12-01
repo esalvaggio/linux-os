@@ -263,8 +263,6 @@ int32_t dir_close(int32_t fd) {
 int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
     pcb_t* curr_pcb = get_curr_pcb();
     fd_t* file_desc = &curr_pcb->file_array[fd];
-    /* Update the file_pos to what file should be read */
-    file_desc->file_pos++;
     /* We are done reading all the files in the directory */
     if (file_desc->file_pos >= boot_block->dir_count)
         return 0;
@@ -276,7 +274,8 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
     while (dir.filename[i] != '\0' && i < nbytes) {
         i++;
     }
-
+    /* Update the file_pos to what file should be read */
+    file_desc->file_pos++;
     /* Return the number of bytes read from the filename */
     return i;
 }

@@ -4,12 +4,13 @@
 #include "types.h"
 
 #define FILE_ARRAY_SIZE     8
-#define NUM_OF_PROCESSES    2
+#define NUM_OF_PROCESSES    6
 #define VIRTUAL_ADDRESS     0x8000000
 #define STACK_PAGE_SIZE     0x400000
 #define FOUR_BYTE_ADDR      4
 #define ARGS_LEN            1024
 #define VIDMEM_ADDR         0x8400000
+
 //pointer is four bytes so you want address of the pointer
 
 #ifndef ASM

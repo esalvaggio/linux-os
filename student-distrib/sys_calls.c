@@ -1,4 +1,5 @@
 #include "sys_calls.h"
+#include "terminals.h"
 #include "fs_setup.h"
 #include "devices/rtc.h"
 #include "devices/keyboard.h"
@@ -31,8 +32,8 @@
 #define ERROR               -1
 
 /* Global PCB file array */
-// pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0};
+pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+// pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0};
 
 //Arrays for file operations pointer table
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
@@ -640,7 +641,7 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
         return ERROR;
 
     pcb_t * curr_pcb = get_curr_pcb(); //get PCB
-    if(curr_pcb->args == NULL) //PCB has no args, failure
+    if(curr_pcb->args[0] == '\0') //PCB has no args, failure
         return ERROR;
 
     int x;
