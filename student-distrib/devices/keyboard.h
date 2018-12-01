@@ -24,25 +24,11 @@
 #define ENTER_BUFFER_INDEX 127
 
 #define F1_KEY_DOWN       59
-#define F1_KEY_UP        -69
-
-#define F2_KEY_DOWN       60
-#define F2_KEY_UP        -68
-
 #define F3_KEY_DOWN       61
-#define F2_KEY_UP        -67
 
-#define F4_KEY_DOWN       62
-#define F4_KEY_UP        -66
+#define ALT_KEY_DOWN      56
+#define ALT_KEY_UP        -72
 
-#define F5_KEY_DOWN       63
-#define F5_KEY_UP        -65
-
-#define F6_KEY_DOWN       64
-#define F6_KEY_UP        -65
-
-#define F7_KEY_DOWN       65
-#define F7_KEY_UP        -64
 
 #define TAB_DOWN          15
 #define TAB_UP          -113

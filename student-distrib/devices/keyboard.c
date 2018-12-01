@@ -13,6 +13,7 @@
   int shift_pressed = 0;
   int shift_released = 0;
   int ctrl_flag = 0;
+  int alt_flag = 0;
   int clear_flag = 0;
   char old_buffer[BUFFER_LENGTH]; //"old buffer" saves the "new buffer" when enter is pressed and the "new buffer is cleared"
   char new_buffer[BUFFER_LENGTH]; //contains the current typing of the user
@@ -71,14 +72,20 @@ void Keyboard_Handler() {
     if (status & LOW_BITMASK) { // get last bit value of status is the character to be displayed
           scan_code = inb(DATA_PORT);
           // printf("%d",scan_code);
-
           if(scan_code == CTRL_KEY_DOWN){
               ctrl_flag = 1;
           }
           if(scan_code == CTRL_KEY_UP){
             ctrl_flag = 0;
           }
-          if(scan_code == L_KEY_DOWN && ctrl_flag == 1){
+          if(scan_code == ALT_KEY_DOWN){
+            alt_flag = 1;
+          }
+          if(scan_code == ALT_KEY_UP){
+            alt_flag = 0;
+          }
+          if(ctrl_flag == 1){
+            if(scan_code == L_KEY_DOWN){
               clear();
               clear_flag = 1;
               update_cursor(0,0);
@@ -88,6 +95,14 @@ void Keyboard_Handler() {
               {
                 new_buffer[x] = '\0';
               }
+            }
+          }
+          if(alt_flag == 1){
+            if(scan_code >= F1_KEY_DOWN && scan_code <= F3_KEY_DOWN){
+              int terminal_fn_key = scan_code - F1_KEY_DOWN;
+              printf("%d",terminal_fn_key);
+              //call_terminal_switch(terminal_fn_key);
+            }
           }
           if(scan_code == SHIFT_LEFT_PRESS || scan_code == SHIFT_RIGHT_PRESS){
               shift_pressed = 1;
