@@ -11,6 +11,11 @@
 #define ARGS_LEN            1024
 #define VIDMEM_ADDR         0x8400000
 
+#define ADDR_8MB      0x800000
+#define ADDR_4MB      0x400000
+#define ADDR_8KB      0x002000
+#define ADDR_4KB      0x001000
+
 //pointer is four bytes so you want address of the pointer
 
 #ifndef ASM

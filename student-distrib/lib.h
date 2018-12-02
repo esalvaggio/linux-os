@@ -7,6 +7,9 @@
 
 #include "types.h"
 
+int get_x_cursor();
+int get_y_cursor();
+
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);
 int32_t puts(int8_t *s);
