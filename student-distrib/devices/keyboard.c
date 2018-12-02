@@ -1,4 +1,5 @@
 #include "keyboard.h"
+#include "../terminals.h"
 
 
 #define BUFFER_LENGTH   128
@@ -17,6 +18,14 @@
   int clear_flag = 0;
   char old_buffer[BUFFER_LENGTH]; //"old buffer" saves the "new buffer" when enter is pressed and the "new buffer is cleared"
   char new_buffer[BUFFER_LENGTH]; //contains the current typing of the user
+
+  char new_text_buffer_list[NUM_OF_TERMINALS][BUFFER_LENGTH];
+  char old_text_buffer_list[NUM_OF_TERMINALS][BUFFER_LENGTH];
+  int new_index_list[NUM_OF_TERMINALS];
+  int old_index_list[NUM_OF_TERMINALS];
+
+
+
   int old_index; //contains the index of the enter key
   int new_index; //contains the current index to write to while typing
   int enter_flag; //checks if enter is pressed for Terminal_Read()
@@ -66,6 +75,7 @@ static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular key
  */
 void Keyboard_Handler() {
     cli();
+
     clear_flag = 0;
     enter_flag = 0;
     status = inb(STATUS_PORT);
@@ -90,10 +100,17 @@ void Keyboard_Handler() {
               clear_flag = 1;
               update_cursor(0,0);
               int x;
-              new_index = 0;
+
+
+              term_t * curr_term = get_curr_terminal();
+              int terminal_num = curr_term->term_index;
+
+              //new_index = 0;
+              new_index_list[terminal_num] = 0;
               for(x = 0; x < BUFFER_LENGTH; x++)
               {
-                new_buffer[x] = '\0';
+                //new_buffer[x] = '\0';
+                new_text_buffer_list[terminal_num][x] = '\0';
               }
             }
           }
@@ -164,13 +181,19 @@ void Keyboard_Init() {
     enable_irq(KEYBOARD_IRQ);
     update_cursor(0,0);
 
-    int x;
+    int x, a;
+    for(a = 0; a < NUM_OF_TERMINALS; a++)
+    {
+
+
     for(x = 0; x < BUFFER_LENGTH; x++)
     {
       old_buffer[x] = '\0';
       new_buffer[x] = '\0';
-
+      new_text_buffer_list[a][x] = '\0';
+      old_text_buffer_list[a][x] = '\0';
     }
+  }
     old_index = 0;
     new_index = 0;
     enter_flag = 0;
@@ -213,23 +236,43 @@ if(buf == NULL || nbytes < 0) //invalid input
 
 while(!enter_flag); //wait for enter to be pressed to do anything
 
+term_t * curr_term = get_curr_terminal();
+int terminal_num;
+if(curr_term == NULL)
+{
+  return FAILURE;
+}
+terminal_num = curr_term->term_index;
+
   int x;
 
-  if(nbytes < old_index) //if we want to read less a smaller portion of buffer, change to smaller amount
+  // if(nbytes < old_index) //if we want to read less a smaller portion of buffer, change to smaller amount
+  // {
+  //   old_index = nbytes;
+  // }
+
+  if(nbytes < old_index_list[terminal_num])
   {
-    old_index = nbytes;
+    old_index_list[terminal_num] = nbytes;
   }
   //if nbytes > old_index, keep old_index the same to avoid problems of reading more than possible
 
-  for(x = 0; x < old_index;x++) //old index = num_chars in old_buffer
+  // for(x = 0; x < old_index;x++) //old index = num_chars in old_buffer
+  // {
+  // ((char*)buf)[x] = old_buffer[x]; //copy in to given buffer
+  // }
+
+  for(x = 0; x < old_index_list[terminal_num]; x++)
   {
-  ((char*)buf)[x] = old_buffer[x]; //copy in to given buffer
+    ((char*)buf)[x] = old_text_buffer_list[terminal_num][x]; //copy in to given buffer
   }
 
 
 enter_flag = 0;
-  return old_index; //return num chars read into buffer argument which is either the number of chars in the
+//  return old_index; //return num chars read into buffer argument which is either the number of chars in the
                     //buffer if nbytes > old_index or the number of chars desired if nbytes < old_index
+
+return old_index_list[terminal_num];
 }
 
 /*
@@ -268,33 +311,55 @@ int x;
 */
 void print_to_screen(char output_key)
 {
+  term_t * curr_term = get_curr_terminal();
+  int terminal_num;
+
+  if(curr_term == NULL)
+  {
+    return;
+  }
+
+  terminal_num = curr_term->term_index;
+
   if(output_key == '\b') //backspace case
   {
-    if(new_index == 0)
+    // if(new_index == 0)
+    // {
+    //   //if buffer is empty, ignore backspace
+    // }
+
+    if(new_index_list[terminal_num] == 0)
     {
-      //if buffer is empty, ignore backspace
+
     }
     else
     {
-    new_index--; //move back an index and fill with NULL
-    new_buffer[new_index] = '\0';
+    // new_index--; //move back an index and fill with NULL
+    // new_buffer[new_index] = '\0';
+    new_index_list[terminal_num]--;
+    new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = '\0';
     printf("%c", output_key);
     }
   }
-  else if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
+  //else if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
+  else if(new_index_list[terminal_num] == ENTER_BUFFER_INDEX)
   {
     if(output_key == '\n')
     {
       new_buffer[new_index] = output_key;
+      //new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
       printf("%c", output_key);
       new_index++;
+      //new_index_list[terminal_num]++;
     }
   }
   else //any other chars besides backspace
   {
   printf("%c", output_key); //print to screen
-  new_buffer[new_index] = output_key; //fill in buffer
-  new_index++;
+  // new_buffer[new_index] = output_key; //fill in buffer
+  //  new_index++;
+  new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
+  new_index_list[terminal_num]++;
   }
 
 
@@ -304,12 +369,19 @@ void print_to_screen(char output_key)
     enter_flag = 1; //set enter flag to alert Terminal_Read that enter has been pressed
     int x;
 
-    old_index = new_index; //save location of enter key
-    new_index = 0;
+     // old_index = new_index; //save location of enter key
+     // new_index = 0;
+    old_index_list[terminal_num] = new_index_list[terminal_num];
+    new_index_list[terminal_num] = 0;
+
+
+
     for(x = 0; x < BUFFER_LENGTH; x++) //copy over new_buffer into old_buffer and clear new_buffer
     {
-      old_buffer[x] = new_buffer[x];
-      new_buffer[x] = '\0';
+       // old_buffer[x] = new_buffer[x];
+       // new_buffer[x] = '\0';
+      old_text_buffer_list[terminal_num][x] = new_text_buffer_list[terminal_num][x];
+      new_text_buffer_list[terminal_num][x] = '\0';
     }
 
   }

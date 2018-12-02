@@ -24,6 +24,29 @@ void clear(void) {
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
 }
+/*
+get_x_cursor()
+Inputs: NONE
+Outputs: current x cursor position
+This is a very simple function that gets the cursor position
+*/
+int get_x_cursor()
+{
+  return screen_x;
+}
+
+/*
+get_y_cursor()
+Inputs: NONE
+Outputs: current y cursor position
+This is a very simple function that gets the cursor position
+*/
+int get_y_cursor()
+{
+  return screen_y;
+}
+
+
 
 /*
 * update_cursor()

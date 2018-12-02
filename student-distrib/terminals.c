@@ -1,5 +1,6 @@
 #include "terminals.h"
-// #include "sys_calls.h"
+#include "sys_calls.h"
+#include "lib.h"
 
 /* Global Terminal array */
 term_t* terminals[NUM_OF_TERMINALS] = {0x0, 0x0, 0x0};
@@ -7,21 +8,26 @@ term_t* terminals[NUM_OF_TERMINALS] = {0x0, 0x0, 0x0};
 void create_terminals() {
     int i;
     for (i = 0; i < NUM_OF_TERMINALS; i++)
+    {
         create_new_term(i);
+        //execute((uint8_t *)"shell");
+    }
 
     terminals[0]->in_use = 1;
 }
 
 void create_new_term(int term_index) {
-    if (term_index < 0 || term_index >= NUM_OF_TERMINALS)
+    if (term_index < 0 || term_index >= NUM_OF_TERMINALS) //invalid terminal number
         return;
 
-    if (terminals[term_index] != 0x0)
+    if (terminals[term_index] != 0x0) //checks if terminal already exists
         return;
 
-    term_t* new_terminal;
+    term_t * new_terminal = (term_t *)(ADDR_8MB - (term_index+7)*ADDR_8KB);
     new_terminal->in_use = 0;
     new_terminal->term_index = term_index;
+    //new_terminal->cursor_x = get_x_cursor();
+    //new_terminal->cursor_y = get_y_cursor();
     // new_terminal->screen_text[0] = '\0';
     int i;
     for(i = 0; i < MAX_PROCESSES; i++)

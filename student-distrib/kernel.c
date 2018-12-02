@@ -14,6 +14,7 @@
 #include "./devices/keyboard.h"
 #include "fs_setup.h"
 #include "sys_calls.h"
+#include "terminals.h"
 
 #define RUN_TESTS
 
@@ -179,7 +180,9 @@ void entry(unsigned long magic, unsigned long addr) {
 #endif
     /* Execute the first program ("shell") ... */
 
+    create_terminals();
     execute((uint8_t *)"shell");
+
 
     /* Spin (nicely, so we don't chew up cycles) */
     asm volatile (".1: hlt; jmp .1;");
