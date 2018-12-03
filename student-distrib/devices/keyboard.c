@@ -112,6 +112,15 @@ void Keyboard_Handler() {
                 new_text_buffer_list[terminal_num][x] = '\0';
               }
             }
+
+            if(scan_code == C_KEY_DOWN)
+            {
+              pcb_t * curr_pcb = get_curr_pcb();
+                sti();
+                send_eoi(KEYBOARD_IRQ);
+                halt(curr_pcb->process_num);
+
+            }
           }
           if(alt_flag == 1){
             if(scan_code >= F1_KEY_DOWN && scan_code <= F3_KEY_DOWN){
