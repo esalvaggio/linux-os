@@ -130,11 +130,21 @@ int32_t halt(uint8_t status) {
      * then we want to restart the shell but not leave from it.
      */
     pcb_t* curr_pcb = get_curr_pcb();
+    term_t* curr_terminal = get_curr_terminal();
+
+    /* Check if we are trying to halt from our base shell in terminal */
+    // if (curr_terminal->pcb_processes[1] == 0x0) {
+    //     // curr_terminal->pcb_processes[0] = NULL;
+    //     printf("yo!");
+    //     pcb_processes[0] = NULL;
+    //     execute((uint8_t*)"shell");
+    // }
 
     if (curr_pcb != NULL && curr_pcb->process_num == 0) {
         pcb_processes[0] = NULL;
         execute((uint8_t*)"shell");
     }
+
     /*
       1. Restore parent data
         - parent process number (most important)
@@ -159,6 +169,8 @@ int32_t halt(uint8_t status) {
               old_num = pcb_parent->process_num;
               pcb_processes[index]->in_use = 0; //turn child off
               pcb_parent->in_use = 1; //turn parent on
+              /* Update our current terminal's pcb */
+              curr_terminal->pcb_processes[PROCESSES_PER_TERM-1] = pcb_processes[index];
               break;
           }
         }
@@ -225,6 +237,17 @@ int32_t execute(const uint8_t* command) {
 
     //Find new process index
     int32_t process_num = find_new_process();
+    term_t* curr_terminal = get_curr_terminal();
+    /* Check if we have reached the max processes for one terminal */
+    // int i, max_flag = 1;
+    // for (; i < PROCESSES_PER_TERM; i++) {
+    //     if (curr_terminal->pcb_processes[i] == 0x0) {
+    //         max_flag = 0;
+    //         break;
+    //     }
+    // }
+    //
+    // if (max_flag) {
     if (process_num == ERROR) {
         printf("Maximum processes running... Cannot execute.\n");
         sti();
@@ -354,9 +377,12 @@ int32_t execute(const uint8_t* command) {
     */
     pcb_t * pcb_new = create_new_pcb(process_num);
     pcb_processes[process_num] = pcb_new;
+    /* Update the pcb array in our current terminal */
+    set_terminal_pcb(pcb_new);
+
     /* First, check if there is a process running already. Because we are
     only running one shell, the running process is the parent of the process
-    being called right now. If no processes are found, now parent exists
+    being called right now. If no processes are found, no parent exists
     */
     int index = 0;
     for (; index < NUM_OF_PROCESSES; index++){
@@ -368,11 +394,9 @@ int32_t execute(const uint8_t* command) {
                 break;
               }
           }
-
     }
+
     pcb_processes[process_num]->in_use = 1;
-
-
 
     /* Copy arguments into pcb */
     if(space_flag == 1)

@@ -9,6 +9,7 @@
 
 int get_x_cursor();
 int get_y_cursor();
+void set_cursor(int x, int y);
 
 int32_t printf(int8_t *format, ...);
 void putc(uint8_t c);

@@ -46,7 +46,16 @@ int get_y_cursor()
   return screen_y;
 }
 
-
+/*
+* set_cursor()
+* Inputs: x/y ->x/y coordinates to print cursor to
+* Outputs: none
+* This function updates the cursor on the screen from a specific terminal
+*/
+void set_cursor(int x, int y) {
+    screen_x = x;
+    screen_y = y;
+}
 
 /*
 * update_cursor()

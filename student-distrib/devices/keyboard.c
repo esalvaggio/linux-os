@@ -78,6 +78,9 @@ void Keyboard_Handler() {
 
     clear_flag = 0;
     enter_flag = 0;
+    term_t * curr_term = get_curr_terminal();
+    int terminal_num = curr_term->term_index;
+
     status = inb(STATUS_PORT);
     if (status & LOW_BITMASK) { // get last bit value of status is the character to be displayed
           scan_code = inb(DATA_PORT);
@@ -101,10 +104,6 @@ void Keyboard_Handler() {
               update_cursor(0,0);
               int x;
 
-
-              term_t * curr_term = get_curr_terminal();
-              int terminal_num = curr_term->term_index;
-
               //new_index = 0;
               new_index_list[terminal_num] = 0;
               for(x = 0; x < BUFFER_LENGTH; x++)
@@ -117,8 +116,10 @@ void Keyboard_Handler() {
           if(alt_flag == 1){
             if(scan_code >= F1_KEY_DOWN && scan_code <= F3_KEY_DOWN){
               int terminal_fn_key = scan_code - F1_KEY_DOWN;
-              printf("%d",terminal_fn_key);
-              //call_terminal_switch(terminal_fn_key);
+              // printf("%d",terminal_fn_key);
+              sti();
+              send_eoi(KEYBOARD_IRQ); //keyboard port on master
+              switch_terminal(terminal_num, terminal_fn_key);
             }
           }
           if(scan_code == SHIFT_LEFT_PRESS || scan_code == SHIFT_RIGHT_PRESS){
