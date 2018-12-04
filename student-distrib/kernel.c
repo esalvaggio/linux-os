@@ -182,7 +182,8 @@ void entry(unsigned long magic, unsigned long addr) {
 
     // create_terminals();
     // execute((uint8_t *)"shell");
-    create_new_term(0);
+    // create_new_term(0);
+    create_terminals();
 
 
     /* Spin (nicely, so we don't chew up cycles) */

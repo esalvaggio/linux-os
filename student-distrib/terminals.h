@@ -11,17 +11,17 @@
 #define TEXT_COLOR          0x4E
 #define NUM_OF_TERMINALS    3
 /* Max processes per terminal, including initial shell */
-#define PROCESSES_PER_TERM  2
+#define PROCESSES_PER_TERM  4
 
 typedef struct terminal {
     int term_index;
+    int num_of_pcbs;
     uint8_t screen_text[VID_MEM_SIZE];
     int32_t cursor_x;
     int32_t cursor_y;
     // int8_t pcb_indices[MAX_PROCESSES];
     pcb_t* pcb_processes[PROCESSES_PER_TERM];
     int8_t in_use;
-    int pcbs_full;
 } term_t;
 
 void create_terminals();

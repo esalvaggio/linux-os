@@ -133,15 +133,9 @@ int32_t halt(uint8_t status) {
     term_t* curr_terminal = get_curr_terminal();
 
     /* Check if we are trying to halt from our base shell in terminal */
-    // if (curr_terminal->pcb_processes[1] == 0x0) {
-    //     // curr_terminal->pcb_processes[0] = NULL;
-    //     printf("yo!");
-    //     pcb_processes[0] = NULL;
-    //     execute((uint8_t*)"shell");
-    // }
-
-    if (curr_pcb != NULL && curr_pcb->process_num == 0) {
-        pcb_processes[0] = NULL;
+    if (curr_terminal->num_of_pcbs == 1) {
+        curr_terminal->pcb_processes[0] = NULL;
+        curr_terminal->num_of_pcbs--;
         execute((uint8_t*)"shell");
     }
 
@@ -170,7 +164,6 @@ int32_t halt(uint8_t status) {
               pcb_processes[index]->in_use = 0; //turn child off
               pcb_parent->in_use = 1; //turn parent on
               /* Update our current terminal's pcb */
-              curr_terminal->pcb_processes[PROCESSES_PER_TERM-1] = pcb_processes[index];
               break;
           }
         }
@@ -209,6 +202,8 @@ int32_t halt(uint8_t status) {
 
     //Finally, Clear pcb_processes[current_num]
     pcb_processes[current_num] = 0x0;
+    /* Update the number of pcbs in the terminal */
+    curr_terminal->num_of_pcbs--;
     //Changes ebp to value when we entered execute, and jump back to execute
     asm volatile ("                         \n\
                     movl %0, %%EBP          \n\
@@ -239,15 +234,6 @@ int32_t execute(const uint8_t* command) {
     int32_t process_num = find_new_process();
     term_t* curr_terminal = get_curr_terminal();
     /* Check if we have reached the max processes for one terminal */
-    // int i, max_flag = 1;
-    // for (; i < PROCESSES_PER_TERM; i++) {
-    //     if (curr_terminal->pcb_processes[i] == 0x0) {
-    //         max_flag = 0;
-    //         break;
-    //     }
-    // }
-    //
-    // if (max_flag) {
     if (process_num == ERROR) {
         printf("Maximum processes running... Cannot execute.\n");
         sti();
