@@ -12,6 +12,7 @@
 #include "./devices/rtc.h"
 #include "paging.h"
 #include "./devices/keyboard.h"
+#include "./devices/pit.h"
 #include "fs_setup.h"
 #include "sys_calls.h"
 #include "terminals.h"
@@ -166,6 +167,8 @@ void entry(unsigned long magic, unsigned long addr) {
      // printf("Enabling Paging\n");
      Paging_Init();
 
+     pit_init();
+
 
     /* Enable interrupts */
     /* Do not enable the following until after you have set up your
@@ -181,10 +184,9 @@ void entry(unsigned long magic, unsigned long addr) {
     /* Execute the first program ("shell") ... */
 
     // create_terminals();
-    // execute((uint8_t *)"shell");
+    //execute((uint8_t *)"shell");
     // create_new_term(0);
     create_terminals();
-
 
     /* Spin (nicely, so we don't chew up cycles) */
     asm volatile (".1: hlt; jmp .1;");
