@@ -1,5 +1,5 @@
 #include "scheduler.h"
-#include "terminal.h"
+#include "terminals.h"
 
 /*
   This might all be wrong.
