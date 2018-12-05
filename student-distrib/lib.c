@@ -2,6 +2,7 @@
  * vim:ts=4 noexpandtab */
 
 #include "lib.h"
+#include "terminals.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
@@ -21,7 +22,14 @@ void clear(void) {
     int32_t i;
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+        int index = get_curr_terminal()->term_index;
+        if(index == 0){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
+        }else if(index == 1){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
+        }else if(index == 2){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
+        }
     }
 }
 /*
@@ -231,13 +239,27 @@ void putc(uint8_t c) {
 
         screen_x--; //move back/left one
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' '; //fill in with space
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB; //fill in color
+        int index = get_curr_terminal()->term_index;
+        if(index == 0){
+          *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
+        }else if(index == 1){
+          *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR2;
+        }else if(index == 2){
+          *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR3;
+        }
 
     }
     else
     {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c; //fill in with character
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+        int index = get_curr_terminal()->term_index;
+        if(index == 0){
+            *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
+        }else if(index == 1){
+            *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR2;
+        }else if(index == 2){
+            *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR3;
+        }
         screen_x++;
 
         if(screen_x == NUM_COLS && screen_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
@@ -269,11 +291,26 @@ void scroll()
   for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
   {
       *(uint8_t *)(video_mem + (i << 1)) =  *(uint8_t *)(video_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
-      *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+      int index = get_curr_terminal()->term_index;
+      if(index == 0){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
+      }else if(index == 1){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
+      }else if(index == 2){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
+      }
+
   }
   for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
     *(uint8_t *)(video_mem + (j << 1)) = ' ';
-    *(uint8_t *)(video_mem + (j << 1) + 1) = ATTRIB;
+    int index = get_curr_terminal()->term_index;
+    if(index == 0){
+        *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR1;
+    }else if(index == 1){
+        *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR2;
+    }else if(index == 2){
+        *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR3;
+    }
   }
   screen_x = 0;
   screen_y = NUM_ROWS-1;

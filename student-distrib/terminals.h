@@ -8,7 +8,10 @@
 #define VID_COLS            25
 #define VID_MEM_SIZE        2000
 #define VID_MEM_START       0xB8000
-#define TEXT_COLOR          0x4E
+#define TEXT_COLOR1         0x4E
+#define TEXT_COLOR2         0x1C
+#define TEXT_COLOR3         0x24
+
 #define NUM_OF_TERMINALS    3
 /* Max processes per terminal, including initial shell */
 #define PROCESSES_PER_TERM  4

@@ -43,6 +43,19 @@ void create_new_term(int term_index) {
     /* Execute a new shell once we go to a new terminal for the first time */
     clear();
     update_cursor(0,0);
+    char* video_mem = (char *)VID_MEM_START;
+    int32_t n;
+    /* Update the video memory with the terminal's buffer */
+    for (n = 0; n < VID_ROWS * VID_COLS; n++) {
+      *(uint8_t *)(video_mem + (n << 1)) = new_terminal->screen_text[n];
+      if(term_index == 0){
+        *(uint8_t *)(video_mem + (n << 1) + 1) = TEXT_COLOR1;
+      }else if (term_index == 1){
+        *(uint8_t *)(video_mem + (n << 1) + 1) = TEXT_COLOR2;
+      }else if(term_index == 2){
+        *(uint8_t *)(video_mem + (n << 1) + 1) = TEXT_COLOR3;
+      }
+    }
     execute((uint8_t*)"shell");
 }
 
@@ -82,7 +95,13 @@ void print_screen_text(term_t* terminal) {
     /* Update the video memory with the terminal's buffer */
     for (i = 0; i < VID_ROWS * VID_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = terminal->screen_text[i];
-        *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR;
+        if(terminal->term_index == 0){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
+        }else if (terminal->term_index == 1){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
+        }else if(terminal->term_index == 2){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
+        }
     }
 
     /* Update the cursor */
