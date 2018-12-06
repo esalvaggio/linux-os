@@ -37,4 +37,28 @@ void switch_processes(){
                   : "eax","edx"    // clobbered register
                 );
     */
+    // We need to return to the parent esp/ebp that should be saved in the pcb structure
+    /*
+    tss.esp0 = pcb_processes[old_num]->esp0;
+    tss.ss0 = pcb_processes[old_num]->ss0; //kernel stack segment = kernel_DS
+
+
+    // We need to restore the previous ebp (entering EXECUTE) in order to return
+
+    int32_t old_ebp = pcb_processes[current_num]->ebp;
+
+    //Finally, Clear pcb_processes[current_num]
+    pcb_processes[current_num] = 0x0;
+     // Update the number of pcbs in the terminal
+    curr_terminal->num_of_pcbs--;
+    //Changes ebp to value when we entered execute, and jump back to execute
+    asm volatile ("                         \n\
+                    movl %0, %%EBP          \n\
+                    movl $0, %%eax          \n\
+                    jmp END_OF_EXECUTE      \n\
+                    "
+                    :
+                    : "r"(old_ebp)               // (no) ouput
+                  );
+    */
 }
