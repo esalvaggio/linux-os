@@ -29,6 +29,9 @@
   int old_index; //contains the index of the enter key
   int new_index; //contains the current index to write to while typing
   int enter_flag; //checks if enter is pressed for Terminal_Read()
+  int changed_terminals;
+
+  int enter_flag_list[NUM_OF_TERMINALS];
 
 static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
                                           '\0','\0', '1', '2', '3', '4', '5', '6', '7', '8',
@@ -77,7 +80,11 @@ void Keyboard_Handler() {
     cli();
 
     clear_flag = 0;
-    enter_flag = 0;
+//    enter_flag = 0;
+
+    // enter_flag_list[0] = 0;
+    // enter_flag_list[1] = 0;
+    // enter_flag_list[2] = 0;
     term_t * curr_term = get_curr_terminal();
     int terminal_num = curr_term->term_index;
 
@@ -126,6 +133,7 @@ void Keyboard_Handler() {
             if(scan_code >= F1_KEY_DOWN && scan_code <= F3_KEY_DOWN){
               int terminal_fn_key = scan_code - F1_KEY_DOWN;
               // printf("%d",terminal_fn_key);
+              changed_terminals = 1; //flag to indicate that we changed terminals
               sti();
               send_eoi(KEYBOARD_IRQ); //keyboard port on master
               switch_terminal(terminal_num, terminal_fn_key);
@@ -194,7 +202,7 @@ void Keyboard_Init() {
     int x, a;
     for(a = 0; a < NUM_OF_TERMINALS; a++)
     {
-
+      enter_flag_list[a] = 0;
 
     for(x = 0; x < BUFFER_LENGTH; x++)
     {
@@ -207,6 +215,7 @@ void Keyboard_Init() {
     old_index = 0;
     new_index = 0;
     enter_flag = 0;
+    changed_terminals = 0;
 }
 
 /*Terminal_Open()
@@ -244,15 +253,28 @@ if(buf == NULL || nbytes < 0) //invalid input
   return FAILURE;
 }
 
-while(!enter_flag); //wait for enter to be pressed to do anything
-
 term_t * curr_term = get_curr_terminal();
-int terminal_num;
+
 if(curr_term == NULL)
 {
   return FAILURE;
 }
+
+int terminal_num;
+
 terminal_num = curr_term->term_index;
+
+while(!enter_flag_list[terminal_num])
+{
+  if(changed_terminals == 1) //flag to indicate that we need to change the terminal num
+  {
+    curr_term = get_curr_terminal(); //get terminal
+    terminal_num = curr_term->term_index; //change terminal num
+    changed_terminals = 0; //reset flag
+  }
+}
+//while(!enter_flag); //wait for enter to be pressed to do anything
+
 
   int x;
 
@@ -277,8 +299,8 @@ terminal_num = curr_term->term_index;
     ((char*)buf)[x] = old_text_buffer_list[terminal_num][x]; //copy in to given buffer
   }
 
-
-enter_flag = 0;
+enter_flag_list[terminal_num] = 0;
+//enter_flag = 0;
 //  return old_index; //return num chars read into buffer argument which is either the number of chars in the
                     //buffer if nbytes > old_index or the number of chars desired if nbytes < old_index
 
@@ -295,18 +317,20 @@ return old_index_list[terminal_num];
 */
 int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 {
-
 if(buf == NULL || nbytes < 0)
 {
   return FAILURE;
 }
 
+cli();
 int x;
 
   for(x = 0; x < nbytes; x++)
   {
     printf("%c", ((char *)buf)[x]); //print
   }
+
+sti();
   return nbytes; //return number of bytes printed
 
 }
@@ -340,7 +364,7 @@ void print_to_screen(char output_key)
 
     if(new_index_list[terminal_num] == 0)
     {
-
+        //   //if buffer is empty, ignore backspace
     }
     else
     {
@@ -356,11 +380,13 @@ void print_to_screen(char output_key)
   {
     if(output_key == '\n')
     {
-      new_buffer[new_index] = output_key;
-      //new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
+      //new_buffer[new_index] = output_key;
+      new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
       printf("%c", output_key);
-      new_index++;
-      //new_index_list[terminal_num]++;
+      //new_index++;
+      new_index_list[terminal_num]++;
+      enter_flag_list[terminal_num] = 1;
+      //enter_flag = 1
     }
   }
   else //any other chars besides backspace
@@ -376,7 +402,9 @@ void print_to_screen(char output_key)
 
   if(output_key == '\n') //key is enter, end of buffer
   {
-    enter_flag = 1; //set enter flag to alert Terminal_Read that enter has been pressed
+    //enter_flag = 1; //set enter flag to alert Terminal_Read that enter has been pressed
+    enter_flag_list[terminal_num] = 1;
+
     int x;
 
      // old_index = new_index; //save location of enter key
