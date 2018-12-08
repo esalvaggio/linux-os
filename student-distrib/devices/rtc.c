@@ -1,4 +1,5 @@
 #include "rtc.h"
+#include "../assembly_linkage.h"
 
 
 
@@ -22,8 +23,8 @@ void RTC_Init(){
     char prev;
 
     idt[RTC_INDEX].present = 1;
-    SET_IDT_ENTRY(idt[RTC_INDEX], RTC_Handler); //index 40 is the RTC in the IDT
-
+    //SET_IDT_ENTRY(idt[RTC_INDEX], RTC_Handler); //index 40 is the RTC in the IDT
+    SET_IDT_ENTRY(idt[RTC_INDEX], rtc_setup);
     outb(NMI_MASK | REG_B, CMOS_REG);		// select register B, and disable NMI
     prev = inb(PIC_REG);	// read the current value of register B
     outb(NMI_MASK | REG_B, CMOS_REG);		// set the index again (a read will reset the index to register D)
