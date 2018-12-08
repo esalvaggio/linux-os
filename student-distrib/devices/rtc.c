@@ -6,9 +6,9 @@
 #define STATUS_PORT     0x64
 #define DATA_PORT       0x60
 #define SLAVE_IRQ          2
-
+#define MASTER_8259_DATA    0x21
 volatile int int_flag = 0;
-
+int32_t frequency;        //used for virtualization, stores current frequency
 //https://wiki.osdev.org/RTC
 
 /* RTC_INIT
@@ -74,21 +74,32 @@ void RTC_Handler(){
  * Page 19 of datasheet
 */
 int32_t RTC_write(int32_t fd, const void* buf, int32_t nbytes){
-  char prev;
-  if (buf == 0x0) return ERROR;
-  int32_t freq = *(int32_t *)buf;
-  int power = power_of_two(freq);
-  if (power < LOW_RATE || power > HI_RATE)return ERROR;
+    if (buf == 0x0) return ERROR;
 
-  power = 16-power; //calculate the proper bits to write to rtc
+    int32_t freq = *(int32_t *)buf;
+    if (freq < frequency){
 
-  cli(); ////////////////////////////////////////////////////////////////
-  outb(NMI_MASK | REG_A, CMOS_REG); // set index to A
-  prev = inb(PIC_REG);	// get initial value of register A
-  outb(NMI_MASK | REG_A, CMOS_REG); // reset index to A
-  outb((prev & TOP_4) | power, PIC_REG); // write new rate to register A -> lower 4 bits
-  sti(); //////////////////////////////////////////////////////////NOT SURE IF RIGHT
-  return SUCCESS;
+        return SUCCESS;
+        //don't actually want to change RTC frequency
+    }
+    //update with new largest frequency
+    frequency = freq;
+
+
+
+    int power = power_of_two(freq);
+    if (power < LOW_RATE || power > HI_RATE)return ERROR;
+
+    power = 16-power; //calculate the proper bits to write to rtc
+
+    cli(); ////////////////////////////////////////////////////////////////
+    outb(NMI_MASK | REG_A, CMOS_REG); // set index to A
+    char prev;
+    prev = inb(PIC_REG);	// get initial value of register A
+    outb(NMI_MASK | REG_A, CMOS_REG); // reset index to A
+    outb((prev & TOP_4) | power, PIC_REG); // write new rate to register A -> lower 4 bits
+    sti(); //////////////////////////////////////////////////////////NOT SURE IF RIGHT
+    return SUCCESS;
 }
 /* power_of_two
  * helper function for RTC_write.
@@ -130,9 +141,32 @@ int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes){
     //For some stupid reason just writing while(int_flag)
     //didn't work even with the flag being volatile. But this does..
     int curr = int_flag;
+
+
+    // //Get masking data for master pic
+    // uint8_t data = inb(MASTER_8259_DATA);
+    // //Mask all ports except the slave port (only RTC will interrupt)
+    // outb(~(0x1 << SLAVE_IRQ), MASTER_8259_DATA);
+
+    int i;
+    /*
+    So if the actual frequency is 32 and the current process is 2, we need
+    16 different interrupts until we should return from read.
+    */
+    //int num_of_times = freq/get_curr_process->rtc_frequency
+    // int num_of_times = 1;
+    // for (i = 0; i < num_of_times; i++){
+    //     int_flag = 1;
+    //     curr = int_flag;
+    //     while(curr){
+    //         curr = int_flag;
+    //     }
+    // }
+    //Re enable all interrupts on pic
+    // outb(data, MASTER_8259_DATA);
     while(curr){
         curr = int_flag;
-    } //-> doesn't work for some reason
+    }
     return SUCCESS;
 }
 /* RTC close
