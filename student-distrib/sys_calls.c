@@ -33,7 +33,6 @@
 
 /* Global PCB file array */
 pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-// pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0};
 
 //Arrays for file operations pointer table
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};

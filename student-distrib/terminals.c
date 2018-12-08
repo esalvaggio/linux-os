@@ -3,19 +3,23 @@
 #include "lib.h"
 
 /* Global Terminal array */
-term_t* terminals[NUM_OF_TERMINALS] = {0x0, 0x0, 0x0};
+// term_t* terminals[NUM_OF_TERMINALS] = {0x0, 0x0, 0x0};
 int curr_total_pcbs = 0;
 
 void create_terminals() {
-
     int i;
+    for (i = 0; i < NUM_OF_TERMINALS; i++)
+    {
+        terminals[i] = 0x0;
+    }
+
     for (i = 0; i < NUM_OF_TERMINALS; i++)
     {
         create_new_term(i);
     }
     /* Set the F1 terminal to be in use on start-up */
     terminals[0]->in_use = 1;
-    /* Execute a new shell the terminal 1 shell */
+    /* Execute a new shell for the terminal 1 shell */
     clear();
     update_cursor(0,0);
     execute((uint8_t*)"shell");
@@ -137,9 +141,29 @@ void switch_terminal(int old_term, int new_term) {
     terminals[new_term]->in_use = 1;
     /* Execute a new shell once we go to a new terminal for the first time */
     if (terminals[new_term]->visited != 1) {
+        /* Get the current pcb of the old terminal */
+        pcb_t* old_pcb;
+        int i;
+        for (i = 0; i < PROCESSES_PER_TERM; i++) {
+            if (terminals[old_term]->pcb_processes[i] != 0x0) {
+                if (terminals[old_term]->pcb_processes[i]->in_use == 1) {
+                    old_pcb = terminals[old_term]->pcb_processes[i];
+                    break;
+                }
+            }
+        }
+
         sti();
         clear();
         update_cursor(0,0);
+        /* Save the EBP and ESP of the old pcb before switching away */
+        asm volatile ("                         \n\
+                        movl %%ebp, %0          \n\
+                        movl %%esp, %0          \n\
+                        "
+                        :"=r"(old_pcb->ebp), "=r"(old_pcb->esp)
+                        : /* no input */
+                      );
         execute((uint8_t*)"shell");
     }
     /* Print the data of the terminal we are switching to */

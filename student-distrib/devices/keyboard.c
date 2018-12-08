@@ -131,7 +131,7 @@ void Keyboard_Handler() {
           }
           if(alt_flag == 1){
             if(scan_code >= F1_KEY_DOWN && scan_code <= F3_KEY_DOWN){
-              int terminal_fn_key = scan_code - F1_KEY_DOWN;
+              terminal_fn_key = scan_code - F1_KEY_DOWN;
               // printf("%d",terminal_fn_key);
               changed_terminals = 1; //flag to indicate that we changed terminals
               sti();
@@ -216,6 +216,7 @@ void Keyboard_Init() {
     new_index = 0;
     enter_flag = 0;
     changed_terminals = 0;
+    terminal_fn_key = 0;
 }
 
 /*Terminal_Open()

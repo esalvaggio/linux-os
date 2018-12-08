@@ -43,4 +43,6 @@ int32_t Terminal_Open(const uint8_t * filename);
 int32_t Terminal_Close(int32_t fd);
 void print_to_screen(char output_key);
 
+int terminal_fn_key;
+
 #endif

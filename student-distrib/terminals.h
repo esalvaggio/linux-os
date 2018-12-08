@@ -26,6 +26,8 @@ typedef struct terminal {
     int8_t in_use;
 } term_t;
 
+term_t* terminals[NUM_OF_TERMINALS];
+
 void create_terminals();
 void create_new_term(int term_index);
 term_t* get_curr_terminal();
