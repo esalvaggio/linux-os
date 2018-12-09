@@ -32,6 +32,7 @@ term_t* terminals[NUM_OF_TERMINALS];
 void create_terminals();
 void create_new_term(int term_index);
 term_t* get_curr_terminal();
+term_t* get_term_by_index(int32_t index);
 void copy_screen_text(term_t* terminal);
 void print_screen_text(term_t* terminal);
 int total_pcbs_created();

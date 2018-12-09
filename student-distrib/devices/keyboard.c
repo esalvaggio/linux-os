@@ -123,11 +123,9 @@ void Keyboard_Handler() {
 
             if(scan_code == C_KEY_DOWN)
             {
-              pcb_t * curr_pcb = get_curr_pcb();
-                sti();
+                // pcb_t * curr_pcb = get_curr_pcb();
                 send_eoi(KEYBOARD_IRQ);
-                halt(curr_pcb->process_num);
-
+                halt(0);
             }
           }
           if(alt_flag == 1){
@@ -135,7 +133,6 @@ void Keyboard_Handler() {
               terminal_fn_key = scan_code - F1_KEY_DOWN;
               // printf("%d",terminal_fn_key);
               changed_terminals = 1; //flag to indicate that we changed terminals
-              sti();
               send_eoi(KEYBOARD_IRQ); //keyboard port on master
               switch_terminal(terminal_num, terminal_fn_key);
             }
@@ -268,43 +265,35 @@ terminal_num = curr_term->term_index;
 
 while(!enter_flag_list[terminal_num])
 {
-  if(changed_terminals == 1) //flag to indicate that we need to change the terminal num
-  {
-    curr_term = get_curr_terminal(); //get terminal
-    terminal_num = curr_term->term_index; //change terminal num
-    changed_terminals = 0; //reset flag
-  }
+  // if(changed_terminals == 1) //flag to indicate that we need to change the terminal num
+  // {
+  //   curr_term = get_curr_terminal(); //get terminal
+  //   terminal_num = curr_term->term_index; //change terminal num
+  //   changed_terminals = 0; //reset flag
+  // }
 }
-//while(!enter_flag); //wait for enter to be pressed to do anything
+
 
 
   int x;
-
-  // if(nbytes < old_index) //if we want to read less a smaller portion of buffer, change to smaller amount
-  // {
-  //   old_index = nbytes;
-  // }
 
   if(nbytes < old_index_list[terminal_num])
   {
     old_index_list[terminal_num] = nbytes;
   }
-  //if nbytes > old_index, keep old_index the same to avoid problems of reading more than possible
 
-  // for(x = 0; x < old_index;x++) //old index = num_chars in old_buffer
+
+  // for(x = 0; x < old_index_list[terminal_num]; x++)
   // {
-  // ((char*)buf)[x] = old_buffer[x]; //copy in to given buffer
+  //   ((char*)buf)[x] = old_text_buffer_list[terminal_num][x]; //copy in to given buffer
   // }
 
-  for(x = 0; x < old_index_list[terminal_num]; x++)
+  for(x = 0; x < nbytes; x++)
   {
     ((char*)buf)[x] = old_text_buffer_list[terminal_num][x]; //copy in to given buffer
   }
 
 enter_flag_list[terminal_num] = 0;
-//enter_flag = 0;
-//  return old_index; //return num chars read into buffer argument which is either the number of chars in the
-                    //buffer if nbytes > old_index or the number of chars desired if nbytes < old_index
 
 return old_index_list[terminal_num];
 }
@@ -325,9 +314,9 @@ int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
     }
     // cli();
     process_t* p = get_curr_process();
-    term_t* t = get_curr_terminal();
+    // term_t* t = get_curr_terminal();
 
-    if(t->term_index == p->index)
+    if(p->active == 1)
     {
 
       int x;

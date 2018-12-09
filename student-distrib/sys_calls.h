@@ -54,6 +54,7 @@ typedef struct pcb {
     int32_t parent_pcb;
     uint8_t args[ARGS_LEN];
     int8_t process_num;
+    int8_t term_index;
     int8_t in_use;
     int32_t esp;
     int32_t ebp;
@@ -67,7 +68,7 @@ typedef struct pcb {
 int32_t find_new_process();
 pcb_t* create_new_pcb(int32_t process_num);
 pcb_t* get_curr_pcb();
-// pcb_t* get_pcb_ptr();
+pcb_t* get_pcb_ptr();
 
 #endif
 #endif

@@ -77,15 +77,13 @@ int32_t RTC_write(int32_t fd, const void* buf, int32_t nbytes){
     if (buf == 0x0) return ERROR;
 
     int32_t freq = *(int32_t *)buf;
-    if (freq < frequency){
-
+    get_curr_process()->rtc_frequency = freq;
+    if (freq <= frequency){
         return SUCCESS;
         //don't actually want to change RTC frequency
     }
     //update with new largest frequency
     frequency = freq;
-
-
 
     int power = power_of_two(freq);
     if (power < LOW_RATE || power > HI_RATE)return ERROR;
@@ -152,9 +150,9 @@ int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes){
     So if the actual frequency is 32 and the current process is 2, we need
     16 different interrupts until we should return from read.
     */
-    //int i;
-    //int num_of_times = freq/get_curr_process->rtc_frequency
-    // int num_of_times = 1;
+    // int i;
+    // int num_of_times = frequency / get_curr_process()->rtc_frequency;
+    //
     // for (i = 0; i < num_of_times; i++){
     //     int_flag = 1;
     //     curr = int_flag;

@@ -8,6 +8,10 @@
 */
 
 void switch_processes(){
+    /* Reset the video memory */
+    uint8_t* screen_start;
+    vidmap(&screen_start);
+    
     process_t* curr_process = get_curr_process();
     if (curr_process == 0x0)
         return;
@@ -25,14 +29,14 @@ void switch_processes(){
     pcb_t* next_pcb = next_process->curr_pcb;
     if (next_pcb == 0x0)
         return;
-    /* Reset the video memory */
-    uint8_t* screen_start;
-    vidmap(&screen_start);
     /* Update the tss to the process we are switching to */
     if (next_pcb != 0x0) {
         tss.esp0 = ADDR_8MB - ADDR_8KB*(next_pcb->process_num) - FOUR_BYTE_ADDR;   /* MAY NEED TO CHANGE THIS */
         tss.ss0 = KERNEL_DS;
     }
+
+    uint32_t phys_addr = ADDR_8MB + (next_pcb->process_num * ADDR_4MB);
+    page_dir_init(VIRTUAL_ADDRESS, phys_addr);
 
     // Save EBP and ESP
     asm volatile ("                         \n\

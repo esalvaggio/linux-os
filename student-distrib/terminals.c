@@ -54,6 +54,10 @@ void create_new_term(int term_index) {
     /* Update our total number of pcb's used */
     curr_total_pcbs++;
 }
+term_t* get_term_by_index(int32_t index){
+    if (index < 0 || index >= NUM_OF_TERMINALS) return NULL;
+    return terminals[index];
+}
 
 term_t* get_curr_terminal() {
     int i;
@@ -75,11 +79,11 @@ void copy_screen_text(term_t* terminal) {
     // for (i = 0; i < VID_ROWS * VID_COLS; i++) {
     //     terminal->screen_text[i] = *(uint8_t *)(video_mem + (i << 1));
     // }
-
-    memcpy(terminal->vid_mem, (uint8_t*)video_mem, 2*VID_MEM_SIZE);
-
     terminal->cursor_x = get_x_cursor();
     terminal->cursor_y = get_y_cursor();
+    memcpy(terminal->vid_mem, (uint8_t*)video_mem, 2*VID_MEM_SIZE);
+
+
 }
 
 void print_screen_text(term_t* terminal) {
@@ -101,10 +105,10 @@ void print_screen_text(term_t* terminal) {
     //       *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
     //     }
     // }
+    /* Update the cursor */
+    set_cursor(terminal->cursor_x, terminal->cursor_y);
     memcpy((uint8_t*)video_mem, terminal->vid_mem, 2*VID_MEM_SIZE);
 
-    /* Update the cursor */
-    update_cursor(terminal->cursor_x, terminal->cursor_y);
 }
 
 int total_pcbs_created(int num) {

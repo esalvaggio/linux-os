@@ -128,19 +128,25 @@ int32_t halt(uint8_t status) {
     /* Check if we are halting from the base shell. If we are,
      * then we want to restart the shell but not leave from it.
      */
-    pcb_t* curr_pcb = get_curr_pcb();
-    term_t* curr_terminal = get_curr_terminal();
+    cli();
+    process_t* curr_process = get_curr_process();
+    pcb_t* curr_pcb = curr_process->curr_pcb;
+    term_t* curr_terminal = terminals[curr_process->index];
+    int i;
 
     /* Check if we are trying to halt from our base shell in terminal */
+
+
     if (curr_terminal->num_of_pcbs == 1) {
-      int pcb_index = curr_terminal->pcb_processes[0]->process_num;
-      pcb_processes[pcb_index] = NULL;
-      curr_terminal->pcb_processes[0] = NULL;
-      curr_terminal->num_of_pcbs--;
-      (void)total_pcbs_created(-1);
-      execute((uint8_t*)"shell");
+          int pcb_index = curr_terminal->pcb_processes[0]->process_num;
+          pcb_processes[pcb_index] = NULL;
+          curr_terminal->pcb_processes[0] = NULL;
+          curr_terminal->num_of_pcbs--;
+          (void)total_pcbs_created(-1);
+          execute((uint8_t*)"shell");
     }
 
+    printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /*
       1. Restore parent data
         - parent process number (most important)
@@ -160,18 +166,18 @@ int32_t halt(uint8_t status) {
             old_num = pcb_parent->process_num;
 
             /* 3. Clear file descriptors */
-            int i;
+
             for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
                 /* close all files in the pcb */
                 close(i);
             }
 
             curr_pcb->in_use = 0;
-
             pcb_parent->in_use = 1;
         }
     }
 
+    printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /*
           2. Restore parent paging
             - similar to how we set up paging in execute()
@@ -192,22 +198,26 @@ int32_t halt(uint8_t status) {
     /*
      * We need to restore the previous ebp (entering EXECUTE) in order to return
      */
-    int32_t old_ebp = pcb_processes[current_num]->ebp;
+    int32_t old_ebp = curr_pcb->ebp;
+    int32_t old_esp = curr_pcb->esp;
 
     //Finally, Clear pcb_processes[current_num]
-    pcb_processes[current_num] = 0x0;
+    curr_process->curr_pcb = pcb_parent;
     curr_pcb = 0x0;
-    /* Update the number of pcbs in the terminal */
     curr_terminal->num_of_pcbs--;
+    printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
+    /* Update the number of pcbs in the terminal */
+
     (void)total_pcbs_created(-1);
     //Changes ebp to value when we entered execute, and jump back to execute
     asm volatile ("                         \n\
-                    movl %0, %%EBP          \n\
+                    movl %0, %%ebp          \n\
+                    movl %1, %%esp          \n\
                     movl $0, %%eax          \n\
                     jmp END_OF_EXECUTE      \n\
                     "
                     :
-                    : "r"(old_ebp)               // (no) ouput
+                    : "r"(old_ebp), "r"(old_esp)               // (no) ouput
                   );
     //Will never reach, need to include regardless
     return ERROR;
@@ -359,9 +369,14 @@ int32_t execute(const uint8_t* command) {
             -> ... so on
     */
     pcb_t * pcb_new = create_new_pcb(process_num);
+    pcb_new->term_index = curr_terminal->term_index;
     pcb_processes[process_num] = pcb_new;
     /* Update the pcb array in our current terminal */
-    pcb_t* curr_pcb = get_curr_pcb();
+
+    // pcb_t* curr_pcb = get_curr_pcb();
+    // set_terminal_pcb(pcb_new);
+
+    pcb_t * curr_pcb = get_pcb_ptr();
     set_terminal_pcb(pcb_new);
 
     /* First, check if there is a process running already. Because we are
@@ -406,13 +421,15 @@ int32_t execute(const uint8_t* command) {
     //Next few lines save current ebp into the process control block.
     // This is needed when we eventually jump back to this function + return
     uint32_t curr_ebp;
+    uint32_t curr_esp;
     asm volatile("                           \n\
                   movl %%ebp, %0             \n\
+                  movl %%esp, %1             \n\
                   "
-                  : "=r"(curr_ebp)
+                  : "=r"(curr_ebp), "=r"(curr_esp)
                 );
    pcb_new->ebp = curr_ebp;
-
+   pcb_new->esp = curr_esp;
     /* Explanation of following assembly code:
        We need to push 0x2B (which is the USER_DS defined in x86_desc.h:15)
        into ax, ds, es, fs, and gs to properly set up the iret context.
@@ -478,7 +495,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
         return ERROR;
 
     //Get current PCB
-    pcb_t * pcb_curr = get_curr_pcb();
+    pcb_t * pcb_curr = get_pcb_ptr();
     if (pcb_curr == NULL) return ERROR;
 
     /* Check file position */
@@ -508,18 +525,22 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
  * Side effects: pcb is changed to active pcb
 */
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
-
+    cli();
     //Check if a valid fd number
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
-    pcb_t * pcb_curr = get_curr_pcb();
-    // pcb_t* pcb_curr = get_pcb_ptr();
-    if (pcb_curr == NULL) return ERROR;
+    // pcb_t * pcb_curr = get_curr_pcb();
+    pcb_t* pcb_curr = get_pcb_ptr();
+    if (pcb_curr == NULL) {
+        sti();
+        return ERROR;
+    }
 
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
     if (file_desc.flags == 0){
+        sti();
         return ERROR;
     }
     /* Return 0 if we've reached the end of the file */
@@ -527,10 +548,11 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 
     if(file_desc.file_ops_table_ptr.write == NULL)
     {
-      return ERROR;
+        sti();
+        return ERROR;
     }
 
-
+    sti();
     return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
 }
 /*
@@ -550,7 +572,7 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 int32_t open(const uint8_t* filename) {
 
     dentry_t dentry;
-    pcb_t * pcb_curr = get_curr_pcb();
+    pcb_t * pcb_curr = get_pcb_ptr();
     if (pcb_curr == NULL) return ERROR;
 
     //Check if file exists, get it's dentry
@@ -611,7 +633,7 @@ int32_t close(int32_t fd) {
     if (fd < DYNAMIC_FILE_START || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
-    pcb_t * pcb_curr = get_curr_pcb();
+    pcb_t * pcb_curr = get_pcb_ptr();
 
     if (pcb_curr->file_array[fd].flags == 1){
       pcb_curr->file_array[fd].flags = 0;
@@ -641,7 +663,7 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
     if(buf == NULL || nbytes < 0) //invalid parameters
         return ERROR;
 
-    pcb_t * curr_pcb = get_curr_pcb(); //get PCB
+    pcb_t * curr_pcb = get_pcb_ptr(); //get PCB
     if(curr_pcb->args[0] == '\0') //PCB has no args, failure
         return ERROR;
 

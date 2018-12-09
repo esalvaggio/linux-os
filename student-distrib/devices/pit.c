@@ -24,6 +24,7 @@ int ticks;
  inside this function. Ticks is just a placeholder for
  counting seconds,
  */
+int all_visited;
 void pit_handler(){
   //need to call context switching function in the scheduler
     // switch_processes();
@@ -31,31 +32,40 @@ void pit_handler(){
     cli(); //?/
 
 
-
-    if (terminals[0]->visited != 1) {
-        clear();
-        update_cursor(0,0);
-        sti();
-        send_eoi(PIT_IRQ);
-        execute((uint8_t*)"shell");
+    if (all_visited == 0){
+        if (terminals[0]->visited != 1) {
+            clear();
+            update_cursor(0,0);
+            sti();
+            send_eoi(PIT_IRQ);
+            execute((uint8_t*)"shell");
+        }
+        else if (terminals[1]->visited != 1) {
+            switch_processes();
+            sti();
+            send_eoi(PIT_IRQ);
+            switch_terminal(0,1);
+        }
+        else if (terminals[2]->visited != 1) {
+            switch_processes();
+            sti();
+            send_eoi(PIT_IRQ);
+            switch_terminal(1,2);
+        }
+        else{
+            //switch back to terminal 0 and get rid of this if statement
+            all_visited = 1;
+            switch_processes();
+            sti();
+            send_eoi(PIT_IRQ);
+            switch_terminal(2,0);
+        }
     }
-    else if (terminals[1]->visited != 1) {
-        switch_processes();
-        sti();
-        send_eoi(PIT_IRQ);
-        switch_terminal(0,1);
-    }
-    else if (terminals[2]->visited != 1) {
-        switch_processes();
-        sti();
-        send_eoi(PIT_IRQ);
-        switch_terminal(1,2);
-    }
-
 
     switch_processes();
     sti();
     send_eoi(PIT_IRQ);
+
 }
 /*
  * pit_init
@@ -69,6 +79,7 @@ void pit_handler(){
 void pit_init(){
     set_up_processes();
     create_terminals();
+    all_visited = 0;
     idt[PIT_INDEX].present = 1;
     SET_IDT_ENTRY(idt[PIT_INDEX], pit_setup); //index 40 is the RTC in the IDT
     set_pit_freq(NEW_HZ);
