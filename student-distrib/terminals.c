@@ -1,5 +1,6 @@
 #include "terminals.h"
 #include "sys_calls.h"
+#include "scheduler.h"
 #include "lib.h"
 
 /* Global Terminal array */
@@ -41,6 +42,7 @@ void create_new_term(int term_index) {
     new_terminal->cursor_x = 0;
     new_terminal->cursor_y = 0;
     new_terminal->screen_text[0] = '\0';
+    new_terminal->vid_mem = (uint8_t*)(VID_MEM_START + (term_index+1)*(ADDR_4KB));
     terminals[term_index] = new_terminal;
 
     int i;
@@ -67,10 +69,12 @@ void copy_screen_text(term_t* terminal) {
         return;
 
     char* video_mem = (char *)VID_MEM_START;
-    int32_t i;
-    for (i = 0; i < VID_ROWS * VID_COLS; i++) {
-        terminal->screen_text[i] = *(uint8_t *)(video_mem + (i << 1));
-    }
+    // int32_t i;
+    // for (i = 0; i < VID_ROWS * VID_COLS; i++) {
+    //     terminal->screen_text[i] = *(uint8_t *)(video_mem + (i << 1));
+    // }
+
+    memcpy(terminal->vid_mem, (uint8_t*)video_mem, 2*VID_MEM_SIZE);
 
     terminal->cursor_x = get_x_cursor();
     terminal->cursor_y = get_y_cursor();
@@ -81,20 +85,22 @@ void print_screen_text(term_t* terminal) {
         return;
 
     /* Reset our cursors so we print from the beginning */
-    update_cursor(0,0);
+    // update_cursor(0,0);
     char* video_mem = (char *)VID_MEM_START;
-    int32_t i;
-    /* Update the video memory with the terminal's buffer */
-    for (i = 0; i < VID_ROWS * VID_COLS; i++) {
-        *(uint8_t *)(video_mem + (i << 1)) = terminal->screen_text[i];
-        if(terminal->term_index == 0){
-          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
-        }else if (terminal->term_index == 1){
-          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
-        }else if(terminal->term_index == 2){
-          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
-        }
-    }
+    // int32_t i;
+    // /* Update the video memory with the terminal's buffer */
+    // for (i = 0; i < VID_ROWS * VID_COLS; i++) {
+    //     *(uint8_t *)(video_mem + (i << 1)) = terminal->screen_text[i];
+    //     if(terminal->term_index == 0){
+    //       *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
+    //     }else if (terminal->term_index == 1){
+    //       *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
+    //     }else if(terminal->term_index == 2){
+    //       *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
+    //     }
+    // }
+    memcpy((uint8_t*)video_mem, terminal->vid_mem, 2*VID_MEM_SIZE);
+
     /* Update the cursor */
     update_cursor(terminal->cursor_x, terminal->cursor_y);
 }
@@ -108,11 +114,13 @@ void set_terminal_pcb(pcb_t* pcb) {
         return;
 
     term_t* curr_terminal = get_curr_terminal();
-
+    int process_idx = curr_terminal->term_index;
     int i;
     for (i = 0; i < PROCESSES_PER_TERM; i++) {
         if (curr_terminal->pcb_processes[i] == 0x0) {
             curr_terminal->pcb_processes[i] = pcb;
+            /* update the currrent process */
+            processes[process_idx]->curr_pcb = pcb;
             break;
         }
     }
@@ -128,12 +136,14 @@ void set_terminal_pcb(pcb_t* pcb) {
 }
 
 void switch_terminal(int old_term, int new_term) {
+
     if (old_term == new_term)
         return;
     else if (new_term < 0 || new_term >= NUM_OF_TERMINALS)
         return;
     else if (terminals[new_term] == 0x0)
         return;
+    
     /* Save the currently used terminal's text screen */
     copy_screen_text(terminals[old_term]);
     /* Set the new terminal to be in use */
@@ -153,17 +163,18 @@ void switch_terminal(int old_term, int new_term) {
             }
         }
 
-        sti();
+
         clear();
         update_cursor(0,0);
         /* Save the EBP and ESP of the old pcb before switching away */
         asm volatile ("                         \n\
                         movl %%ebp, %0          \n\
-                        movl %%esp, %0          \n\
+                        movl %%esp, %1          \n\
                         "
                         :"=r"(old_pcb->ebp), "=r"(old_pcb->esp)
-                        : /* no input */
+                        :
                       );
+        sti();
         execute((uint8_t*)"shell");
     }
     /* Print the data of the terminal we are switching to */

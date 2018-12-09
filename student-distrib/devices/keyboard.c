@@ -1,5 +1,6 @@
 #include "keyboard.h"
 #include "../terminals.h"
+#include "../scheduler.h"
 
 
 #define BUFFER_LENGTH   128
@@ -323,16 +324,43 @@ if(buf == NULL || nbytes < 0)
   return FAILURE;
 }
 
+process_t * curr_process = get_curr_process();
+
+term_t * curr_terminal = get_curr_terminal();
+
+printf("Process_Num: %d \n", curr_process->index);
+printf("Terminal Num: %d \n", curr_terminal->term_index);
+
+
+if(curr_terminal->term_index == curr_process->index)
+{
 cli();
 int x;
 
   for(x = 0; x < nbytes; x++)
   {
-    printf("%c", ((char *)buf)[x]); //print
+    //printf("%c", ((char *)buf)[x]); //print
+    putc(((char *)buf)[x]);
   }
 
 sti();
   return nbytes; //return number of bytes printed
+}
+
+else
+{
+  cli();
+  int x;
+
+    for(x = 0; x < nbytes; x++)
+    {
+      //printf("%c", ((char *)buf)[x]); //print
+      putc_dif_term(((char *)buf)[x]);
+    }
+
+  sti();
+    return nbytes; //return number of bytes printed
+}
 
 }
 

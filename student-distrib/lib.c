@@ -3,6 +3,7 @@
 
 #include "lib.h"
 #include "terminals.h"
+#include "scheduler.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
@@ -276,6 +277,63 @@ void putc(uint8_t c) {
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
     update_cursor(screen_x,screen_y);
+}
+
+void putc_dif_term(uint8_t c) {
+    process_t* p = get_curr_process();
+    term_t* t = terminals[p->index];
+    int index = t->term_index;
+
+    if(c == '\n' || c == '\r'){ //new line case
+       t->cursor_y++;
+       t->cursor_x = 0;
+      if(t->cursor_y == NUM_ROWS){
+         scroll(); //scroll if enter is pressed on the last row
+         return;
+       }
+    }
+    else if(c == '\b') //backspace case
+    {
+
+        t->cursor_x--; //move back/left one
+        *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1)) = ' '; //fill in with space
+
+        if(index == 0){
+          *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
+        }else if(index == 1){
+          *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR2;
+        }else if(index == 2){
+          *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR3;
+        }
+
+    }
+    else
+    {
+        *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1)) = c; //fill in with character
+
+        if(index == 0){
+            *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
+        }else if(index == 1){
+            *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR2;
+        }else if(index == 2){
+            *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR3;
+        }
+        t->cursor_x++;
+
+        if(t->cursor_x == NUM_COLS && t->cursor_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
+        {
+          scroll(); //call helper function
+          return;
+        }
+
+        else if(t->cursor_x == NUM_COLS) //check if at right end of screen
+        {
+          t->cursor_y++; //move down
+        }
+        t->cursor_x %= NUM_COLS;
+        t->cursor_y = (t->cursor_y + (t->cursor_x / NUM_COLS)) % NUM_ROWS;
+    }
+    update_cursor(t->cursor_x,t->cursor_y);
 }
 
 /*

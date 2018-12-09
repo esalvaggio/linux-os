@@ -20,6 +20,7 @@ typedef struct terminal {
     int num_of_pcbs;
     int visited;
     uint8_t screen_text[VID_MEM_SIZE];
+    uint8_t* vid_mem;
     int32_t cursor_x;
     int32_t cursor_y;
     pcb_t* pcb_processes[PROCESSES_PER_TERM];

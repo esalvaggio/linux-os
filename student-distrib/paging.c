@@ -22,7 +22,9 @@ void Paging_Init(){
   }
   page_directory[0] = ((uint32_t) page_table) + RE_WR + USER + PRESENT_BIT; //4kB
   page_directory[1] = KERNEL_LOAD_ADDR + PAGE_SIZE + RE_WR + PRESENT_BIT; //Kernel 4MB address
-  page_table[SHIFTED_VGA_ADDR] = VIDEO + RE_WR + USER + PRESENT_BIT; //VGA 4kB
+  for (i = 0; i < 4; i++) {
+      page_table[SHIFTED_VGA_ADDR + i] = VIDEO + RE_WR + USER + PRESENT_BIT + (i*FOURKB); //VGA 4kB
+  }
 
   //Turn on paging, not yet initialized tables
   //input page directory in here

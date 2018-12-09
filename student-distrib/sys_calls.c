@@ -147,7 +147,7 @@ int32_t halt(uint8_t status) {
           -> look in PCB for this
     jumps into execute, restores eip
     */
-    int index;
+    //int index;
     int current_num = 0;
     int old_num = 0;
     pcb_t * pcb_parent;

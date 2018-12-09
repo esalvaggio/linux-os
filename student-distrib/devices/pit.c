@@ -1,4 +1,5 @@
 #include "pit.h"
+#include "../scheduler.h"
 #include "../assembly_linkage.h"
 
 #define PORT_0          0x40
@@ -25,13 +26,17 @@ int ticks;
  */
 void pit_handler(){
   //need to call context switching function in the scheduler
-    sti(); //?
+    // switch_processes();
     send_eoi(PIT_IRQ);
-    ticks++;
-    if (ticks == 32){
-        //Every second-ish
-        ticks = 0;
-    }
+    cli(); //?/
+    // ticks++;
+    // if (ticks == 32){
+    //     //Every second-ish
+    //     ticks = 0;
+    // }
+
+    switch_processes();
+    sti();
 }
 /*
  * pit_init
@@ -47,8 +52,8 @@ void pit_init(){
     idt[PIT_INDEX].present = 1;
     SET_IDT_ENTRY(idt[PIT_INDEX], pit_setup); //index 40 is the RTC in the IDT
     set_pit_freq(NEW_HZ);
-    ticks = 0;
-
+    // ticks = 0;
+    set_up_processes();
     enable_irq(PIT_IRQ);
 }
 /*
