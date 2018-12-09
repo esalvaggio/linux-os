@@ -148,11 +148,11 @@ int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes){
     // //Mask all ports except the slave port (only RTC will interrupt)
     // outb(~(0x1 << SLAVE_IRQ), MASTER_8259_DATA);
 
-    int i;
     /*
     So if the actual frequency is 32 and the current process is 2, we need
     16 different interrupts until we should return from read.
     */
+    //int i;
     //int num_of_times = freq/get_curr_process->rtc_frequency
     // int num_of_times = 1;
     // for (i = 0; i < num_of_times; i++){

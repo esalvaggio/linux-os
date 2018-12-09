@@ -143,7 +143,7 @@ void switch_terminal(int old_term, int new_term) {
         return;
     else if (terminals[new_term] == 0x0)
         return;
-    
+
     /* Save the currently used terminal's text screen */
     copy_screen_text(terminals[old_term]);
     /* Set the new terminal to be in use */
@@ -179,5 +179,8 @@ void switch_terminal(int old_term, int new_term) {
     }
     /* Print the data of the terminal we are switching to */
     print_screen_text(terminals[new_term]);
+
+    //processes[terminal_num]->active == 1;
+
     sti();
 }

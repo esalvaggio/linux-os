@@ -177,6 +177,7 @@ void Keyboard_Handler() {
             }
             if(clear_flag != 1 && output_key != '\0') //print key if clear flag is not set and key to print is not NULL
             {
+              cli();
               print_to_screen(output_key); //call helper function to handle all the cases to print char
 
             }
@@ -328,8 +329,8 @@ process_t * curr_process = get_curr_process();
 
 term_t * curr_terminal = get_curr_terminal();
 
-printf("Process_Num: %d \n", curr_process->index);
-printf("Terminal Num: %d \n", curr_terminal->term_index);
+// printf("Process_Num: %d \n", curr_process->index);
+// printf("Terminal Num: %d \n", curr_terminal->term_index);
 
 
 if(curr_terminal->term_index == curr_process->index)
@@ -375,6 +376,7 @@ else
 void print_to_screen(char output_key)
 {
   term_t * curr_term = get_curr_terminal();
+  process_t * p = get_curr_process();
   int terminal_num;
 
   if(curr_term == NULL)
@@ -397,11 +399,17 @@ void print_to_screen(char output_key)
     }
     else
     {
-    // new_index--; //move back an index and fill with NULL
-    // new_buffer[new_index] = '\0';
-    new_index_list[terminal_num]--;
-    new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = '\0';
-    printf("%c", output_key);
+      // new_index--; //move back an index and fill with NULL
+      // new_buffer[new_index] = '\0';
+      new_index_list[terminal_num]--;
+      new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = '\0';
+      //printf("%c", output_key);
+        if( curr_term->term_index == p->index)
+          putc(output_key);
+        else
+        {
+          putc_dif_term(output_key);
+        }
     }
   }
   //else if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
@@ -409,47 +417,63 @@ void print_to_screen(char output_key)
   {
     if(output_key == '\n')
     {
-      //new_buffer[new_index] = output_key;
-      new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
-      printf("%c", output_key);
-      //new_index++;
-      new_index_list[terminal_num]++;
-      enter_flag_list[terminal_num] = 1;
-      //enter_flag = 1
+        //new_buffer[new_index] = output_key;
+        new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
+        //printf("%c", output_key);
+          if( curr_term->term_index == p->index)
+            putc(output_key);
+
+          else
+          {
+            putc_dif_term(output_key);
+          }
+
+        //new_index++;
+        new_index_list[terminal_num]++;
+        enter_flag_list[terminal_num] = 1;
+        //enter_flag = 1
     }
   }
   else //any other chars besides backspace
   {
-  printf("%c", output_key); //print to screen
-  // new_buffer[new_index] = output_key; //fill in buffer
-  //  new_index++;
-  new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
-  new_index_list[terminal_num]++;
+      //printf("%c", output_key); //print to screen
+      if( curr_term->term_index == p->index)
+        putc(output_key);
+
+      else
+      {
+        putc_dif_term(output_key);
+      }
+
+      // new_buffer[new_index] = output_key; //fill in buffer
+      //  new_index++;
+      new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
+      new_index_list[terminal_num]++;
   }
 
 
 
   if(output_key == '\n') //key is enter, end of buffer
   {
-    //enter_flag = 1; //set enter flag to alert Terminal_Read that enter has been pressed
-    enter_flag_list[terminal_num] = 1;
+      //enter_flag = 1; //set enter flag to alert Terminal_Read that enter has been pressed
+      enter_flag_list[terminal_num] = 1;
 
-    int x;
+      int x;
 
-     // old_index = new_index; //save location of enter key
-     // new_index = 0;
-    old_index_list[terminal_num] = new_index_list[terminal_num];
-    new_index_list[terminal_num] = 0;
+       // old_index = new_index; //save location of enter key
+       // new_index = 0;
+      old_index_list[terminal_num] = new_index_list[terminal_num];
+      new_index_list[terminal_num] = 0;
 
 
 
-    for(x = 0; x < BUFFER_LENGTH; x++) //copy over new_buffer into old_buffer and clear new_buffer
-    {
-       // old_buffer[x] = new_buffer[x];
-       // new_buffer[x] = '\0';
-      old_text_buffer_list[terminal_num][x] = new_text_buffer_list[terminal_num][x];
-      new_text_buffer_list[terminal_num][x] = '\0';
-    }
+      for(x = 0; x < BUFFER_LENGTH; x++) //copy over new_buffer into old_buffer and clear new_buffer
+      {
+         // old_buffer[x] = new_buffer[x];
+         // new_buffer[x] = '\0';
+        old_text_buffer_list[terminal_num][x] = new_text_buffer_list[terminal_num][x];
+        new_text_buffer_list[terminal_num][x] = '\0';
+      }
 
   }
 }

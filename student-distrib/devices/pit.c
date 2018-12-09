@@ -28,7 +28,7 @@ void pit_handler(){
   //need to call context switching function in the scheduler
     // switch_processes();
     send_eoi(PIT_IRQ);
-    cli(); //?/
+    //cli(); //?/
     // ticks++;
     // if (ticks == 32){
     //     //Every second-ish
@@ -36,7 +36,7 @@ void pit_handler(){
     // }
 
     switch_processes();
-    sti();
+    //sti();
 }
 /*
  * pit_init

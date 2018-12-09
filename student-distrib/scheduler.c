@@ -7,13 +7,15 @@
   This might all be wrong.
 */
 
+//TODO: maybe add pointer going backwards, in case of f1,f2 or f2,f3
 void switch_processes(){
     process_t* curr_process = get_curr_process();
     if (curr_process == 0x0) return;
 
     process_t* next_process = curr_process->next;
     /* Null check */
-    if (next_process == 0x0) return;
+    if (next_process == 0x0)
+    return;
     //printf("yo \n");
     pcb_t* curr_pcb = curr_process->curr_pcb;
     if (curr_pcb == 0x0) return;
@@ -30,7 +32,7 @@ void switch_processes(){
         tss.ss0 = KERNEL_DS;
     }
 
-    /*
+
     // Save EBP and ESP
     asm volatile ("                         \n\
                     movl %%ebp, %0          \n\
@@ -47,7 +49,7 @@ void switch_processes(){
                     :
                     :"r"(next_pcb->ebp), "r"(next_pcb->esp)
                   );
-    flushTLB();*/
+    flushTLB();
 }
 
 void set_up_processes() {
