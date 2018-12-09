@@ -18,12 +18,14 @@ void create_terminals() {
     {
         create_new_term(i);
     }
-    /* Set the F1 terminal to be in use on start-up */
-    terminals[0]->in_use = 1;
+    /* Set the F3 terminal to be in use because we start the shells from
+      right to left */
+    terminals[2]->in_use = 1;
+    processes[0]->active = 1;
     /* Execute a new shell for the terminal 1 shell */
-    clear();
-    update_cursor(0,0);
-    execute((uint8_t*)"shell");
+    // clear();
+    // update_cursor(0,0);
+    // execute((uint8_t*)"shell");
 }
 
 void create_new_term(int term_index) {
@@ -136,19 +138,22 @@ void set_terminal_pcb(pcb_t* pcb) {
 }
 
 void switch_terminal(int old_term, int new_term) {
-
+    cli();
     if (old_term == new_term)
         return;
     else if (new_term < 0 || new_term >= NUM_OF_TERMINALS)
         return;
     else if (terminals[new_term] == 0x0)
         return;
-    
+
     /* Save the currently used terminal's text screen */
     copy_screen_text(terminals[old_term]);
     /* Set the new terminal to be in use */
     terminals[old_term]->in_use = 0;
     terminals[new_term]->in_use = 1;
+    /* Update the active process */
+    processes[old_term]->active = 0;
+    processes[new_term]->active = 1;
     /* Execute a new shell once we go to a new terminal for the first time */
     if (terminals[new_term]->visited != 1) {
         /* Get the current pcb of the old terminal */

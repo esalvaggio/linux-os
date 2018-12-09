@@ -11,6 +11,7 @@ typedef struct process_struct {
     pcb_t* curr_pcb;
     int32_t rtc_frequency;
     int8_t in_use;
+    int8_t active;
 } process_t;
 
 process_t* processes[MAX_PROCESSES];

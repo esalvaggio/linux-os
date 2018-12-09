@@ -2,8 +2,6 @@
  * vim:ts=4 noexpandtab */
 
 #include "lib.h"
-#include "terminals.h"
-#include "scheduler.h"
 
 #define VIDEO       0xB8000
 #define NUM_COLS    80
@@ -13,7 +11,7 @@
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
-void scroll();
+
 
 /* void clear(void);
  * Inputs: void
@@ -81,6 +79,12 @@ void set_cursor(int x, int y) {
   outb((uint8_t) ((pos >> 8) & 0xFF),0x3D5);
   screen_x = x; //modify global coordinates to provided coordinates
   screen_y = y;
+ }
+
+ void update_term_cursor(term_t* t, int x, int y)
+ {
+   t->cursor_x = x; //modify global coordinates to provided coordinates
+   t->cursor_y = y;
  }
 
 /* Standard printf().
@@ -279,8 +283,7 @@ void putc(uint8_t c) {
     update_cursor(screen_x,screen_y);
 }
 
-void putc_dif_term(uint8_t c) {
-    process_t* p = get_curr_process();
+void putc_dif_term(process_t* p, uint8_t c) {
     term_t* t = terminals[p->index];
     int index = t->term_index;
 
@@ -288,7 +291,7 @@ void putc_dif_term(uint8_t c) {
        t->cursor_y++;
        t->cursor_x = 0;
       if(t->cursor_y == NUM_ROWS){
-         scroll(); //scroll if enter is pressed on the last row
+         term_scroll(t); //scroll if enter is pressed on the last row
          return;
        }
     }
@@ -322,7 +325,7 @@ void putc_dif_term(uint8_t c) {
 
         if(t->cursor_x == NUM_COLS && t->cursor_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
         {
-          scroll(); //call helper function
+          term_scroll(t); //call helper function
           return;
         }
 
@@ -333,7 +336,6 @@ void putc_dif_term(uint8_t c) {
         t->cursor_x %= NUM_COLS;
         t->cursor_y = (t->cursor_y + (t->cursor_x / NUM_COLS)) % NUM_ROWS;
     }
-    update_cursor(t->cursor_x,t->cursor_y);
 }
 
 /*
@@ -345,11 +347,12 @@ void putc_dif_term(uint8_t c) {
 */
 void scroll()
 {
+  int index = get_curr_terminal()->term_index;
   int32_t i,j;
   for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
   {
       *(uint8_t *)(video_mem + (i << 1)) =  *(uint8_t *)(video_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
-      int index = get_curr_terminal()->term_index;
+
       if(index == 0){
           *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
       }else if(index == 1){
@@ -361,7 +364,7 @@ void scroll()
   }
   for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
     *(uint8_t *)(video_mem + (j << 1)) = ' ';
-    int index = get_curr_terminal()->term_index;
+
     if(index == 0){
         *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR1;
     }else if(index == 1){
@@ -375,6 +378,38 @@ void scroll()
   update_cursor(screen_x,screen_y);
 }
 
+void term_scroll(term_t* t)
+{
+  int index = t->term_index;
+  int32_t i,j;
+  for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
+  {
+      *(uint8_t *)(t->vid_mem + (i << 1)) =  *(uint8_t *)(t->vid_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
+
+      if(index == 0){
+          *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR1;
+      }else if(index == 1){
+          *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR2;
+      }else if(index == 2){
+          *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR3;
+      }
+
+  }
+  for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
+    *(uint8_t *)(t->vid_mem + (j << 1)) = ' ';
+
+    if(index == 0){
+        *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR1;
+    }else if(index == 1){
+        *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR2;
+    }else if(index == 2){
+        *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR3;
+    }
+  }
+  t->cursor_x = 0;
+  t->cursor_y = NUM_ROWS-1;
+  // update_cursor(screen_x,screen_y);
+}
 
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

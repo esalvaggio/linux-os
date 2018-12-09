@@ -27,8 +27,29 @@ int ticks;
 void pit_handler(){
   //need to call context switching function in the scheduler
     // switch_processes();
-    send_eoi(PIT_IRQ);
+    // process_t* p = get_curr_process();
     cli(); //?/
+
+    if (terminals[2]->visited != 1) {
+        clear();
+        update_cursor(0,0);
+        sti();
+        send_eoi(PIT_IRQ);
+        execute((uint8_t*)"shell");
+    }
+    else if (terminals[1]->visited != 1) {
+        sti();
+        send_eoi(PIT_IRQ);
+        switch_terminal(2,1);
+    }
+    else if (terminals[0]->visited != 1) {
+        sti();
+        send_eoi(PIT_IRQ);
+        switch_terminal(1,0);
+    }
+
+
+
     // ticks++;
     // if (ticks == 32){
     //     //Every second-ish
@@ -37,6 +58,7 @@ void pit_handler(){
 
     switch_processes();
     sti();
+    send_eoi(PIT_IRQ);
 }
 /*
  * pit_init
@@ -48,12 +70,12 @@ void pit_handler(){
  * SIDE EFFECTS: All mentioned above.
 */
 void pit_init(){
-
+    set_up_processes();
+    create_terminals();
     idt[PIT_INDEX].present = 1;
     SET_IDT_ENTRY(idt[PIT_INDEX], pit_setup); //index 40 is the RTC in the IDT
     set_pit_freq(NEW_HZ);
     // ticks = 0;
-    set_up_processes();
     enable_irq(PIT_IRQ);
 }
 /*

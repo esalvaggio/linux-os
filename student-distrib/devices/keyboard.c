@@ -319,48 +319,39 @@ return old_index_list[terminal_num];
 */
 int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 {
-if(buf == NULL || nbytes < 0)
-{
-  return FAILURE;
-}
-
-process_t * curr_process = get_curr_process();
-
-term_t * curr_terminal = get_curr_terminal();
-
-printf("Process_Num: %d \n", curr_process->index);
-printf("Terminal Num: %d \n", curr_terminal->term_index);
-
-
-if(curr_terminal->term_index == curr_process->index)
-{
-cli();
-int x;
-
-  for(x = 0; x < nbytes; x++)
-  {
-    //printf("%c", ((char *)buf)[x]); //print
-    putc(((char *)buf)[x]);
-  }
-
-sti();
-  return nbytes; //return number of bytes printed
-}
-
-else
-{
-  cli();
-  int x;
-
-    for(x = 0; x < nbytes; x++)
+    if(buf == NULL || nbytes < 0)
     {
-      //printf("%c", ((char *)buf)[x]); //print
-      putc_dif_term(((char *)buf)[x]);
+      return FAILURE;
     }
+    cli();
+    process_t* p = get_curr_process();
+    term_t* t = get_curr_terminal();
 
-  sti();
-    return nbytes; //return number of bytes printed
-}
+    if(t->term_index == p->index)
+    {
+
+      int x;
+
+        for(x = 0; x < nbytes; x++)
+        {
+          putc(((char *)buf)[x]);
+        }
+
+      sti();
+      return nbytes; //return number of bytes printed
+    }
+    else
+    {
+      int x;
+
+        for(x = 0; x < nbytes; x++)
+        {
+          putc_dif_term(p, ((char *)buf)[x]);
+        }
+
+      sti();
+      return nbytes; //return number of bytes printed
+    }
 
 }
 
@@ -374,6 +365,7 @@ else
 */
 void print_to_screen(char output_key)
 {
+  // process_t*
   term_t * curr_term = get_curr_terminal();
   int terminal_num;
 
@@ -386,22 +378,13 @@ void print_to_screen(char output_key)
 
   if(output_key == '\b') //backspace case
   {
-    // if(new_index == 0)
-    // {
-    //   //if buffer is empty, ignore backspace
-    // }
-
-    if(new_index_list[terminal_num] == 0)
+    if(new_index_list[terminal_num] != 0)
     {
-        //   //if buffer is empty, ignore backspace
-    }
-    else
-    {
-    // new_index--; //move back an index and fill with NULL
-    // new_buffer[new_index] = '\0';
-    new_index_list[terminal_num]--;
-    new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = '\0';
-    printf("%c", output_key);
+        // new_index--; //move back an index and fill with NULL
+        // new_buffer[new_index] = '\0';
+        new_index_list[terminal_num]--;
+        new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = '\0';
+        printf("%c", output_key);
     }
   }
   //else if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
@@ -420,11 +403,11 @@ void print_to_screen(char output_key)
   }
   else //any other chars besides backspace
   {
-  printf("%c", output_key); //print to screen
-  // new_buffer[new_index] = output_key; //fill in buffer
-  //  new_index++;
-  new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
-  new_index_list[terminal_num]++;
+      printf("%c", output_key); //print to screen
+      // new_buffer[new_index] = output_key; //fill in buffer
+      //  new_index++;
+      new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
+      new_index_list[terminal_num]++;
   }
 
 
