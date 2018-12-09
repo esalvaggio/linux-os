@@ -30,7 +30,9 @@ void pit_handler(){
     // process_t* p = get_curr_process();
     cli(); //?/
 
-    if (terminals[2]->visited != 1) {
+
+
+    if (terminals[0]->visited != 1) {
         clear();
         update_cursor(0,0);
         sti();
@@ -38,23 +40,18 @@ void pit_handler(){
         execute((uint8_t*)"shell");
     }
     else if (terminals[1]->visited != 1) {
+        switch_processes();
         sti();
         send_eoi(PIT_IRQ);
-        switch_terminal(2,1);
+        switch_terminal(0,1);
     }
-    else if (terminals[0]->visited != 1) {
+    else if (terminals[2]->visited != 1) {
+        switch_processes();
         sti();
         send_eoi(PIT_IRQ);
-        switch_terminal(1,0);
+        switch_terminal(1,2);
     }
 
-
-
-    // ticks++;
-    // if (ticks == 32){
-    //     //Every second-ish
-    //     ticks = 0;
-    // }
 
     switch_processes();
     sti();
@@ -75,7 +72,6 @@ void pit_init(){
     idt[PIT_INDEX].present = 1;
     SET_IDT_ENTRY(idt[PIT_INDEX], pit_setup); //index 40 is the RTC in the IDT
     set_pit_freq(NEW_HZ);
-    // ticks = 0;
     enable_irq(PIT_IRQ);
 }
 /*

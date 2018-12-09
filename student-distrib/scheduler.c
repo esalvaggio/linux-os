@@ -7,7 +7,6 @@
   This might all be wrong.
 */
 
-//TODO: maybe add pointer going backwards, in case of f1,f2 or f2,f3
 void switch_processes(){
     process_t* curr_process = get_curr_process();
     if (curr_process == 0x0)
@@ -16,14 +15,16 @@ void switch_processes(){
     /* Null check */
     if (next_process == 0x0)
         return;
+
+    curr_process->in_use = 0;
+    next_process->in_use = 1;
+
     pcb_t* curr_pcb = curr_process->curr_pcb;
     if (curr_pcb == 0x0)
         return;
     pcb_t* next_pcb = next_process->curr_pcb;
     if (next_pcb == 0x0)
         return;
-    curr_process->in_use = 0;
-    next_process->in_use = 1;
     /* Reset the video memory */
     uint8_t* screen_start;
     vidmap(&screen_start);
@@ -77,6 +78,8 @@ void set_up_processes() {
     }
     /* Set the first process to be in use to begin */
     processes[0]->in_use = 1;
+    curr_process = 0;
+    next_process = 0;
 }
 
 process_t* get_curr_process() {

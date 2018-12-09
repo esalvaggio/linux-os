@@ -20,7 +20,7 @@ void create_terminals() {
     }
     /* Set the F3 terminal to be in use because we start the shells from
       right to left */
-    terminals[2]->in_use = 1;
+    terminals[0]->in_use = 1;
     processes[0]->active = 1;
     /* Execute a new shell for the terminal 1 shell */
     // clear();
@@ -184,8 +184,5 @@ void switch_terminal(int old_term, int new_term) {
     }
     /* Print the data of the terminal we are switching to */
     print_screen_text(terminals[new_term]);
-
-    //processes[terminal_num]->active == 1;
-
     sti();
 }

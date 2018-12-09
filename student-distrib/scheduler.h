@@ -15,6 +15,8 @@ typedef struct process_struct {
 } process_t;
 
 process_t* processes[MAX_PROCESSES];
+int curr_process;
+int next_process;
 
 void switch_processes();
 void set_up_processes();

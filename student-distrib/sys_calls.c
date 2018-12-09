@@ -5,7 +5,6 @@
 #include "devices/keyboard.h"
 #include "paging.h"
 #include "x86_desc.h"
-#include "scheduler.h"
 
 /* Filetypes */
 #define RTC_FILETYPE         0
@@ -126,7 +125,6 @@ pcb_t* create_new_pcb(int32_t process_num) {
  *               removes current pcb
 */
 int32_t halt(uint8_t status) {
-  //TODO: figure out if cli or sti need to be here
     /* Check if we are halting from the base shell. If we are,
      * then we want to restart the shell but not leave from it.
      */
@@ -173,12 +171,6 @@ int32_t halt(uint8_t status) {
             pcb_parent->in_use = 1;
         }
     }
-
-    //-----------------------------------------------------------------
-    process_t* process = get_curr_process();
-    process->curr_pcb = pcb_parent;
-
-
 
     /*
           2. Restore parent paging
@@ -419,12 +411,7 @@ int32_t execute(const uint8_t* command) {
                   "
                   : "=r"(curr_ebp)
                 );
-    pcb_new->ebp = curr_ebp;
-
-
-    process_t* process = get_curr_process();
-    process->curr_pcb = pcb_new;
-
+   pcb_new->ebp = curr_ebp;
 
     /* Explanation of following assembly code:
        We need to push 0x2B (which is the USER_DS defined in x86_desc.h:15)
@@ -491,7 +478,6 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
         return ERROR;
 
     //Get current PCB
-
     pcb_t * pcb_curr = get_curr_pcb();
     if (pcb_curr == NULL) return ERROR;
 
@@ -510,9 +496,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
 
     /* The corresponding read call checks if we have reached the end
         of the file */
-    int32_t ret_val = file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
-
-    return ret_val;
+    return file_desc.file_ops_table_ptr.read(fd, buf, nbytes);
 }
 /*
  * write()
@@ -530,15 +514,12 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
         return ERROR;
 
     pcb_t * pcb_curr = get_curr_pcb();
-    if (pcb_curr == NULL){
-        sti();
-        return ERROR;
-    }
+    // pcb_t* pcb_curr = get_pcb_ptr();
+    if (pcb_curr == NULL) return ERROR;
 
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
     if (file_desc.flags == 0){
-        sti();
         return ERROR;
     }
     /* Return 0 if we've reached the end of the file */
@@ -546,14 +527,11 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 
     if(file_desc.file_ops_table_ptr.write == NULL)
     {
-      sti();
       return ERROR;
     }
 
 
-    int32_t ret_val = file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
-
-    return ret_val;
+    return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
 }
 /*
  * open()
@@ -615,12 +593,10 @@ int32_t open(const uint8_t* filename) {
                     break;
             }
             pcb_curr->file_array[fa_index] = file_desc;
-            sti();
             return fa_index;
         }
     }
     /* There are no open locations in the file array */
-
     return ERROR;
 }
 /*
@@ -645,12 +621,9 @@ int32_t close(int32_t fd) {
         return ERROR;
       }
 
-      int32_t return_value = pcb_curr->file_array[fd].file_ops_table_ptr.close(fd);
-      sti();
-      return return_value;
+      return pcb_curr->file_array[fd].file_ops_table_ptr.close(fd);
+      // return SUCCESS;
     }
-
-
     return ERROR;
 
 }
@@ -731,22 +704,28 @@ int32_t sigreturn(void) {
  * of every function and figured it would be better to make into a routine
 */
 pcb_t * get_curr_pcb(){
-    /*
-    term_t* terminal = get_curr_terminal();
-    if (terminal == NULL)
-        return NULL;
+  term_t* terminal = get_curr_terminal();
+  if (terminal == NULL)
+      return NULL;
 
-    int i;
-    //Get current PCB
-    for (i = 0 ; i < PROCESSES_PER_TERM; i++){
-        if (terminal->pcb_processes[i] != 0x0){
-          if (terminal->pcb_processes[i]->in_use == 1)
-              return terminal->pcb_processes[i];
-        }
-    }*/
-    process_t* process = get_curr_process();
-    return process->curr_pcb;
+  int i;
+  //Get current PCB
+  for (i = 0 ; i < PROCESSES_PER_TERM; i++){
+      if (terminal->pcb_processes[i] != 0x0){
+        if (terminal->pcb_processes[i]->in_use == 1)
+            return terminal->pcb_processes[i];
+      }
+  }
 
+  return NULL;
+  // process_t* p = get_curr_process();
+  // if (p == NULL)
+  //     return NULL;
+  //
+  // return p->curr_pcb;
+}
 
-    return NULL;
+pcb_t* get_pcb_ptr() {
+  process_t* p = get_curr_process();
+  return p->curr_pcb;
 }
