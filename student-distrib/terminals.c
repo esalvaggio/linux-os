@@ -184,5 +184,8 @@ void switch_terminal(int old_term, int new_term) {
     }
     /* Print the data of the terminal we are switching to */
     print_screen_text(terminals[new_term]);
+
+    //processes[terminal_num]->active == 1;
+
     sti();
 }

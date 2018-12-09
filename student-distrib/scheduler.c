@@ -7,6 +7,7 @@
   This might all be wrong.
 */
 
+//TODO: maybe add pointer going backwards, in case of f1,f2 or f2,f3
 void switch_processes(){
     process_t* curr_process = get_curr_process();
     if (curr_process == 0x0)
