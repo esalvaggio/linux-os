@@ -20,10 +20,10 @@
   char old_buffer[BUFFER_LENGTH]; //"old buffer" saves the "new buffer" when enter is pressed and the "new buffer is cleared"
   char new_buffer[BUFFER_LENGTH]; //contains the current typing of the user
 
-  char new_text_buffer_list[NUM_OF_TERMINALS][BUFFER_LENGTH];
-  char old_text_buffer_list[NUM_OF_TERMINALS][BUFFER_LENGTH];
-  int new_index_list[NUM_OF_TERMINALS];
-  int old_index_list[NUM_OF_TERMINALS];
+  char new_text_buffer_list[NUM_OF_TERMINALS][BUFFER_LENGTH]; //typing buffer for each terminal
+  char old_text_buffer_list[NUM_OF_TERMINALS][BUFFER_LENGTH]; //saved buffer for each terminal
+  int new_index_list[NUM_OF_TERMINALS]; //index for current position in buffer per terminal
+  int old_index_list[NUM_OF_TERMINALS]; //index of last character in buffer per terminal
 
 
 
@@ -32,7 +32,7 @@
   int enter_flag; //checks if enter is pressed for Terminal_Read()
   int changed_terminals;
 
-  int enter_flag_list[NUM_OF_TERMINALS];
+  int enter_flag_list[NUM_OF_TERMINALS]; //list of enter flags
 
 static unsigned char keyboard_map[KB_CAPS_CASES][KB_MAP_SIZE] ={{ /* regular keys */
                                           '\0','\0', '1', '2', '3', '4', '5', '6', '7', '8',
@@ -81,11 +81,6 @@ void Keyboard_Handler() {
     cli();
 
     clear_flag = 0;
-//    enter_flag = 0;
-
-    // enter_flag_list[0] = 0;
-    // enter_flag_list[1] = 0;
-    // enter_flag_list[2] = 0;
     term_t * curr_term = get_curr_terminal();
     int terminal_num = curr_term->term_index;
 
@@ -120,13 +115,6 @@ void Keyboard_Handler() {
                 new_text_buffer_list[terminal_num][x] = '\0';
               }
             }
-
-            if(scan_code == C_KEY_DOWN)
-            {
-                // pcb_t * curr_pcb = get_curr_pcb();
-                send_eoi(KEYBOARD_IRQ);
-                halt(0);
-            }
           }
           if(alt_flag == 1){
             if(scan_code >= F1_KEY_DOWN && scan_code <= F3_KEY_DOWN){
@@ -146,8 +134,7 @@ void Keyboard_Handler() {
 
           if(scan_code >= KEY_OUT_OF_BOUNDS)
           {
-            //scan_code = 1; //escape key, if key is outside of used scope, set to escape key to print null
-            clear_flag = 1; //ignore bad key
+          clear_flag = 1; //ignore bad key
           }
 
           if (scan_code >= 0) {
@@ -252,7 +239,7 @@ if(buf == NULL || nbytes < 0) //invalid input
   return FAILURE;
 }
 
-term_t * curr_term = get_curr_terminal();
+term_t * curr_term = get_curr_terminal(); //get terminal to read from
 
 if(curr_term == NULL)
 {
@@ -261,41 +248,28 @@ if(curr_term == NULL)
 
 int terminal_num;
 
-terminal_num = curr_term->term_index;
+terminal_num = curr_term->term_index; //get terminal number
 
-while(!enter_flag_list[terminal_num])
+while(!enter_flag_list[terminal_num]) //wait for current terminal enter to be pressed
 {
-  // if(changed_terminals == 1) //flag to indicate that we need to change the terminal num
-  // {
-  //   curr_term = get_curr_terminal(); //get terminal
-  //   terminal_num = curr_term->term_index; //change terminal num
-  //   changed_terminals = 0; //reset flag
-  // }
+
 }
-
-
 
   int x;
 
   if(nbytes < old_index_list[terminal_num])
   {
-    old_index_list[terminal_num] = nbytes;
+    old_index_list[terminal_num] = nbytes; //read only as many bytes as desired
   }
-
-
-  // for(x = 0; x < old_index_list[terminal_num]; x++)
-  // {
-  //   ((char*)buf)[x] = old_text_buffer_list[terminal_num][x]; //copy in to given buffer
-  // }
 
   for(x = 0; x < nbytes; x++)
   {
     ((char*)buf)[x] = old_text_buffer_list[terminal_num][x]; //copy in to given buffer
   }
 
-enter_flag_list[terminal_num] = 0;
+enter_flag_list[terminal_num] = 0; //reset enter flag
 
-return old_index_list[terminal_num];
+return old_index_list[terminal_num]; //return how many bytes read
 }
 
 /*
@@ -312,21 +286,19 @@ int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
     {
       return FAILURE;
     }
-    // cli();
-    process_t* p = get_curr_process();
-    // term_t* t = get_curr_terminal();
 
-    if(p->active == 1)
+    process_t* p = get_curr_process(); //get current process
+
+    if(p->active == 1) //if process index == terminal index, we write to video memory
     {
 
       int x;
 
         for(x = 0; x < nbytes; x++)
         {
-          putc(((char *)buf)[x]);
+          putc(((char *)buf)[x]); //original putc writes to video memory
         }
 
-      // sti();
       return nbytes; //return number of bytes printed
     }
     else
@@ -335,10 +307,9 @@ int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 
         for(x = 0; x < nbytes; x++)
         {
-          putc_dif_term(p, ((char *)buf)[x]);
+          putc_dif_term(p, ((char *)buf)[x]); //new putc writes to the "fake" video memory
         }
 
-      // sti();
       return nbytes; //return number of bytes printed
     }
 
@@ -355,7 +326,7 @@ int32_t Terminal_Write(int32_t fd, const void * buf, int32_t nbytes)
 void print_to_screen(char output_key)
 {
   // process_t*
-  term_t * curr_term = get_curr_terminal();
+  term_t * curr_term = get_curr_terminal(); //get terminal to print to
   int terminal_num;
 
   if(curr_term == NULL)
@@ -369,32 +340,31 @@ void print_to_screen(char output_key)
   {
     if(new_index_list[terminal_num] != 0)
     {
-        // new_index--; //move back an index and fill with NULL
-        // new_buffer[new_index] = '\0';
         new_index_list[terminal_num]--;
         new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = '\0';
         printf("%c", output_key);
     }
   }
-  //else if(new_index == ENTER_BUFFER_INDEX) //Buffer is full, fill last entry with enter to set up next if condition
+  //if buffer is full, we need the output key to be enter, otherwise ignore
   else if(new_index_list[terminal_num] == ENTER_BUFFER_INDEX)
   {
     if(output_key == '\n')
     {
-      //new_buffer[new_index] = output_key;
+      //update buffer and print key
       new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
       printf("%c", output_key);
-      //new_index++;
+
+      //increase the corresponding index and set the enter flag
       new_index_list[terminal_num]++;
       enter_flag_list[terminal_num] = 1;
-      //enter_flag = 1
+
     }
   }
   else //any other chars besides backspace
   {
       printf("%c", output_key); //print to screen
-      // new_buffer[new_index] = output_key; //fill in buffer
-      //  new_index++;
+
+      //set corresponding entry in buffer and increase the index
       new_text_buffer_list[terminal_num][new_index_list[terminal_num]] = output_key;
       new_index_list[terminal_num]++;
   }
@@ -403,22 +373,19 @@ void print_to_screen(char output_key)
 
   if(output_key == '\n') //key is enter, end of buffer
   {
-    //enter_flag = 1; //set enter flag to alert Terminal_Read that enter has been pressed
+    //set enter_flag
     enter_flag_list[terminal_num] = 1;
 
     int x;
 
-     // old_index = new_index; //save location of enter key
-     // new_index = 0;
+    //save enter location
     old_index_list[terminal_num] = new_index_list[terminal_num];
-    new_index_list[terminal_num] = 0;
+    new_index_list[terminal_num] = 0; //reset index in buffer
 
 
 
     for(x = 0; x < BUFFER_LENGTH; x++) //copy over new_buffer into old_buffer and clear new_buffer
     {
-       // old_buffer[x] = new_buffer[x];
-       // new_buffer[x] = '\0';
       old_text_buffer_list[terminal_num][x] = new_text_buffer_list[terminal_num][x];
       new_text_buffer_list[terminal_num][x] = '\0';
     }
