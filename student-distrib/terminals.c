@@ -82,11 +82,10 @@ void copy_screen_text(term_t* terminal) {
     terminal->cursor_x = get_x_cursor();
     terminal->cursor_y = get_y_cursor();
     memcpy(terminal->vid_mem, (uint8_t*)video_mem, 2*VID_MEM_SIZE);
-
-
 }
 
 void print_screen_text(term_t* terminal) {
+    cli();
     if (terminal == 0x0)
         return;
 
@@ -108,7 +107,7 @@ void print_screen_text(term_t* terminal) {
     /* Update the cursor */
     set_cursor(terminal->cursor_x, terminal->cursor_y);
     memcpy((uint8_t*)video_mem, terminal->vid_mem, 2*VID_MEM_SIZE);
-
+    sti();
 }
 
 int total_pcbs_created(int num) {
@@ -190,5 +189,8 @@ void switch_terminal(int old_term, int new_term) {
     }
     /* Print the data of the terminal we are switching to */
     print_screen_text(terminals[new_term]);
+    // uint8_t* screen_start;
+    // vidmap(&screen_start);
+    // page_dir_init_fourkb((uint32_t)screen_start, (uint32_t)terminals[new_term]->vid_mem);
     sti();
 }

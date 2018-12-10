@@ -30,10 +30,14 @@ void switch_processes(){
     if (next_pcb == 0x0)
         return;
     /* Update the tss to the process we are switching to */
-    if (next_pcb != 0x0) {
-        tss.esp0 = ADDR_8MB - ADDR_8KB*(next_pcb->process_num) - FOUR_BYTE_ADDR;   /* MAY NEED TO CHANGE THIS */
-        tss.ss0 = KERNEL_DS;
-    }
+
+    tss.esp0 = ADDR_8MB - ADDR_8KB*(next_pcb->process_num) - FOUR_BYTE_ADDR;   /* MAY NEED TO CHANGE THIS */
+    tss.ss0 = KERNEL_DS;
+
+    // term_t* t = terminals[next_process->index];
+    // if (next_process->active != 1) {
+    //     page_dir_init_fourkb((uint32_t)screen_start, (uint32_t)t->vid_mem);
+    // }
 
     uint32_t phys_addr = ADDR_8MB + (next_pcb->process_num * ADDR_4MB);
     page_dir_init(VIRTUAL_ADDRESS, phys_addr);

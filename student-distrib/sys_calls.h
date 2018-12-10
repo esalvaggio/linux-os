@@ -51,7 +51,8 @@ typedef struct fd {
 typedef struct pcb {
     fd_t file_array[FILE_ARRAY_SIZE];
     int32_t mem_addr_start;
-    int32_t parent_pcb;
+    // int32_t parent_pcb;
+    struct pcb* parent_pcb;
     uint8_t args[ARGS_LEN];
     int8_t process_num;
     int8_t term_index;

@@ -165,7 +165,7 @@ int32_t halt(uint8_t status) {
 
     if (curr_pcb->parent_pcb != 0x0) {
         current_num = curr_pcb->process_num;
-        pcb_parent = (pcb_t*)(curr_pcb->parent_pcb);
+        pcb_parent = (curr_pcb->parent_pcb);
         old_num = pcb_parent->process_num;
 
         /* 3. Clear file descriptors */
@@ -210,6 +210,7 @@ int32_t halt(uint8_t status) {
         if(curr_terminal->pcb_processes[i] == curr_pcb)
         {
             curr_terminal->pcb_processes[i] = NULL;
+            curr_terminal->pcb_processes[i-1]->in_use = 1;
             break;
         }
     }
@@ -225,15 +226,15 @@ int32_t halt(uint8_t status) {
     // printf("total pcbs: %d\n", total_pcbs_created(0));
     // printf("term pcbs: %d\n", curr_terminal->num_of_pcbs);
     //Changes ebp to value when we entered execute, and jump back to execute
-
     asm volatile ("                         \n\
                     movl %0, %%ebp          \n\
                     movl %1, %%esp          \n\
-                    movl $0, %%eax          \n\
+                    movl %2, %%eax          \n\
                     jmp END_OF_EXECUTE      \n\
                     "
                     :
-                    : "r"(old_ebp), "r"(old_esp)               // (no) ouput
+                    : "r"(old_ebp), "r"(old_esp), "r"((uint32_t)status)
+                    : "eax"
                   );
 
 
@@ -332,7 +333,7 @@ int32_t execute(const uint8_t* command) {
     /* Check if we have reached the max processes for one terminal */
     if (curr_terminal->visited == 1) {
       if (total_pcbs_created(0) == NUM_OF_PROCESSES) {
-          //printf("Maximum processes running... Cannot execute.\n");
+          printf("Maximum processes running... Cannot execute.\n");
           sti();
           return 0;
       }
@@ -408,10 +409,10 @@ int32_t execute(const uint8_t* command) {
     pcb_processes[process_num] = pcb_new;
     /* Update the pcb array in our current terminal */
 
-    // pcb_t* curr_pcb = get_curr_pcb();
+    pcb_t* curr_pcb = get_curr_pcb();
     // set_terminal_pcb(pcb_new);
 
-    pcb_t * curr_pcb = get_pcb_ptr();
+    // pcb_t * curr_pcb = get_pcb_ptr();
     //set_terminal_pcb(pcb_new);
     //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
@@ -421,7 +422,7 @@ int32_t execute(const uint8_t* command) {
     */
 
     if (curr_pcb != NULL) {
-        pcb_new->parent_pcb = (int32_t)curr_pcb;
+        pcb_new->parent_pcb = curr_pcb;
         curr_pcb->in_use = 0;
     }
 
@@ -432,8 +433,6 @@ int32_t execute(const uint8_t* command) {
     {
       copy_string(pcb_new->args, arg_buf, ARGS_LEN);
     }
-
-            set_terminal_pcb(pcb_new);
 
     /*
       6. context switch
@@ -468,8 +467,10 @@ int32_t execute(const uint8_t* command) {
                   "
                   : "=r"(curr_ebp), "=r"(curr_esp)
                 );
+                
    pcb_new->ebp = curr_ebp;
    pcb_new->esp = curr_esp;
+   set_terminal_pcb(pcb_new);
    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* Explanation of following assembly code:
@@ -497,6 +498,8 @@ int32_t execute(const uint8_t* command) {
     HALT will jump to END_OF_EXECUTE tag, and perform
     a leave ret. HALT restores the ebp of execute.
     */
+    sti();
+
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -570,7 +573,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
  * Side effects: pcb is changed to active pcb
 */
 int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
-    cli();
+
     //Check if a valid fd number
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
@@ -578,14 +581,12 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     // pcb_t * pcb_curr = get_curr_pcb();
     pcb_t* pcb_curr = get_pcb_ptr();
     if (pcb_curr == NULL) {
-        sti();
         return ERROR;
     }
 
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
     if (file_desc.flags == 0){
-        sti();
         return ERROR;
     }
     /* Return 0 if we've reached the end of the file */
@@ -597,7 +598,6 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
         return ERROR;
     }
 
-    sti();
     return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
 }
 /*
@@ -793,8 +793,6 @@ pcb_t * get_curr_pcb(){
 }
 
 pcb_t* get_pcb_ptr() {
-  cli();
   process_t* p = get_curr_process();
-  sti();
   return p->curr_pcb;
 }
