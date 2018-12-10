@@ -3,16 +3,19 @@
 
 
 
-#define STATUS_PORT     0x64
-#define DATA_PORT       0x60
-#define SLAVE_IRQ          2
+#define STATUS_PORT         0x64
+#define DATA_PORT           0x60
+#define SLAVE_IRQ              2
+#define INIT_FREQ              2
 #define MASTER_8259_DATA    0x21
+
+
 volatile int int_flag = 0;
 volatile int ticks;
-int32_t frequency = 2;        //used for virtualization, stores current frequency
+int32_t frequency = INIT_FREQ;        //used for virtualization, stores current frequency
 //https://wiki.osdev.org/RTC
 int process_count[MAX_PROCESSES] = {0,0,0};
-int freqs[MAX_PROCESSES] = {2,2,2};
+int freqs[MAX_PROCESSES] = {INIT_FREQ,INIT_FREQ,INIT_FREQ};
 int flags[MAX_PROCESSES] = {0,0,0};
 /* RTC_INIT
  * Inputs: none

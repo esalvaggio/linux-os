@@ -3,5 +3,6 @@
 
 void pit_setup();
 void rtc_setup();
+void keyboard_setup();
 
 #endif

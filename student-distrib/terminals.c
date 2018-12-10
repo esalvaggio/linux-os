@@ -119,7 +119,7 @@ void set_terminal_pcb(pcb_t* pcb) {
         return;
 
     term_t* curr_terminal = get_curr_terminal();
-    int process_idx = curr_terminal->term_index;
+
     process_t* curr_process = get_process_by_index(curr_terminal->term_index);
     int i;
     for (i = 0; i < PROCESSES_PER_TERM; i++) {

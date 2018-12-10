@@ -1,6 +1,7 @@
 #include "keyboard.h"
 #include "../terminals.h"
 #include "../scheduler.h"
+#include "../assembly_linkage.h"
 
 
 #define BUFFER_LENGTH   128
@@ -180,7 +181,7 @@ void Keyboard_Handler() {
  */
 void Keyboard_Init() {
     idt[KEYBOARD_INDEX].present = 1;
-    SET_IDT_ENTRY(idt[KEYBOARD_INDEX], Keyboard_Handler);
+    SET_IDT_ENTRY(idt[KEYBOARD_INDEX], keyboard_setup);
     enable_irq(KEYBOARD_IRQ);
     update_cursor(0,0);
 
