@@ -49,16 +49,18 @@ typedef struct fd {
 
 /* Process Control Block */
 typedef struct pcb {
-    fd_t file_array[FILE_ARRAY_SIZE];
-    int32_t mem_addr_start;
-    // int32_t parent_pcb;
+    fd_t file_array[FILE_ARRAY_SIZE]; //file system pointer
+    int32_t mem_addr_start; //where it is located in memory
     struct pcb* parent_pcb;
-    uint8_t args[ARGS_LEN];
-    int8_t process_num;
-    int8_t term_index;
+    uint8_t args[ARGS_LEN]; //array for storing arguments
+
+    int8_t process_num;//what process it is running in
+    int8_t term_index; //what terminal it is running in
     int8_t in_use;
+    //stores esp and ebp for process switching
     int32_t esp;
     int32_t ebp;
+    //tss necessary info
     int32_t esp0;
     int32_t ss0;
     // add more good stuff
@@ -68,7 +70,7 @@ typedef struct pcb {
 /* Initializer function for PCB */
 int32_t find_new_process();
 pcb_t* create_new_pcb(int32_t process_num);
-pcb_t* get_curr_pcb();
+
 pcb_t* get_pcb_ptr();
 
 #endif

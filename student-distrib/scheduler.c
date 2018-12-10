@@ -3,6 +3,7 @@
 #include "devices/keyboard.h"
 #include "paging.h"
 
+#define PROCESS_OFFSET          10
 /*
   This might all be wrong.
 */
@@ -82,7 +83,7 @@ void set_up_processes() {
     }
 
     for (i = 0; i < MAX_PROCESSES; i++) {
-        process_t* p = (process_t*)(ADDR_8MB - (i+10)*ADDR_8KB);
+        process_t* p = (process_t*)(ADDR_8MB - (i+PROCESS_OFFSET)*ADDR_8KB);
         p->index = i;
         p->rtc_frequency = 2;
         p->in_use = 0;

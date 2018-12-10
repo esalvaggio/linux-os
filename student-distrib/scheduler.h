@@ -7,7 +7,7 @@
 
 typedef struct process_struct {
     struct process_struct *next;
-    int32_t index;
+    int32_t index;  //in the process array
     pcb_t* curr_pcb;
     int32_t rtc_frequency;
     int8_t in_use;

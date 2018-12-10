@@ -398,7 +398,7 @@ int32_t execute(const uint8_t* command) {
     pcb_processes[process_num] = pcb_new;
     /* Update the pcb array in our current terminal */
 
-    pcb_t* curr_pcb = get_curr_pcb();
+    pcb_t* curr_pcb = get_pcb_ptr();
     // set_terminal_pcb(pcb_new);
 
     // pcb_t * curr_pcb = get_pcb_ptr();
@@ -566,7 +566,6 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
-    // pcb_t * pcb_curr = get_curr_pcb();
     pcb_t* pcb_curr = get_pcb_ptr();
     if (pcb_curr == NULL) {
         return ERROR;
@@ -752,34 +751,13 @@ int32_t sigreturn(void) {
 }
 
 /*
- * get_curr_pcb()
+ * get_pcb_ptr()
  * INPUTS: NONE
  * OUTPUTS: pointer to the current pcb
  * Finds the one active pcb. Nothing special, just used at beginning
- * of every function and figured it would be better to make into a routine
+ * of every function and figured it would be better to make into a routine.
+ * Gets current process's pcb
 */
-pcb_t * get_curr_pcb(){
-  term_t* terminal = get_curr_terminal();
-  if (terminal == NULL)
-      return NULL;
-
-  int i;
-  //Get current PCB
-  for (i = 0 ; i < PROCESSES_PER_TERM; i++){
-      if (terminal->pcb_processes[i] != 0x0){
-        if (terminal->pcb_processes[i]->in_use == 1)
-            return terminal->pcb_processes[i];
-      }
-  }
-
-  return NULL;
-  // process_t* p = get_curr_process();
-  // if (p == NULL)
-  //     return NULL;
-  //
-  // return p->curr_pcb;
-}
-
 pcb_t* get_pcb_ptr() {
   process_t* p = get_curr_process();
   return p->curr_pcb;
