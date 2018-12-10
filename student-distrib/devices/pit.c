@@ -16,7 +16,7 @@
 #define PIT_INDEX         32
 #define COMMAND         0x36
 
-#define NEW_HZ            32
+#define NEW_HZ            48 //20.8 ms
 
 int ticks;
 /*

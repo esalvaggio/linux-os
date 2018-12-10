@@ -234,6 +234,7 @@ int32_t puts(int8_t* s) {
  * Return Value: void
  *  Function: Output a character to the console */
 void putc(uint8_t c) {
+    cli();
     if(c == '\n' || c == '\r'){ //new line case
        screen_y++;
        screen_x = 0;
@@ -268,6 +269,7 @@ void putc(uint8_t c) {
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
     }
     update_cursor(screen_x,screen_y);
+    sti();
 }
 
 /*
@@ -282,6 +284,7 @@ void putc(uint8_t c) {
 
 */
 void putc_dif_term(process_t* p, uint8_t c) {
+    cli();
     term_t* t = terminals[p->index];
 
     if(c == '\n' || c == '\r'){ //new line case
@@ -318,6 +321,7 @@ void putc_dif_term(process_t* p, uint8_t c) {
         t->cursor_x %= NUM_COLS;
         t->cursor_y = (t->cursor_y + (t->cursor_x / NUM_COLS)) % NUM_ROWS;
     }
+    sti();
 }
 
 /*
