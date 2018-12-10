@@ -20,8 +20,20 @@
 #define CTRL_KEY_DOWN     29
 #define CTRL_KEY_UP       -99
 #define L_KEY_DOWN        38
+#define C_KEY_DOWN        46
 #define KEY_OUT_OF_BOUNDS 59
 #define ENTER_BUFFER_INDEX 127
+
+#define F1_KEY_DOWN       59
+#define F3_KEY_DOWN       61
+
+#define ALT_KEY_DOWN      56
+#define ALT_KEY_UP        -72
+
+
+#define TAB_DOWN          15
+#define TAB_UP          -113
+
 
 void Keyboard_Init();
 void Keyboard_Handler();
@@ -30,5 +42,7 @@ int32_t Terminal_Read(int32_t fd, void * buf, int32_t nbytes);
 int32_t Terminal_Open(const uint8_t * filename);
 int32_t Terminal_Close(int32_t fd);
 void print_to_screen(char output_key);
+
+int terminal_fn_key;
 
 #endif

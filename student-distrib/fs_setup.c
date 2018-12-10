@@ -165,7 +165,7 @@ int32_t file_open(const uint8_t* filename) {
  *
  */
 int32_t file_close(int32_t fd) {
-    pcb_t* curr_pcb = get_curr_pcb();
+    pcb_t* curr_pcb = get_pcb_ptr();
     fd_t* file_desc = &curr_pcb->file_array[fd];
     file_desc->flags = 0;
     file_desc->inode = -1;
@@ -189,7 +189,7 @@ int32_t file_close(int32_t fd) {
  */
 int32_t file_read(int32_t fd, void* buf, int32_t nbytes) {
     /* Find the current file position */
-    pcb_t* curr_pcb = get_curr_pcb();
+    pcb_t* curr_pcb = get_pcb_ptr();
     fd_t* file_desc = &curr_pcb->file_array[fd];
     /* Read up to "length" */
     int32_t bytes_read = read_data(file_desc->inode, file_desc->file_pos, buf, nbytes);
@@ -237,7 +237,7 @@ int32_t dir_open(const uint8_t* filename) {
  *
  */
 int32_t dir_close(int32_t fd) {
-    pcb_t* curr_pcb = get_curr_pcb();
+    pcb_t* curr_pcb = get_pcb_ptr();
     fd_t* file_desc = &curr_pcb->file_array[fd];
     file_desc->flags = 0;
     file_desc->inode = -1;
@@ -261,10 +261,8 @@ int32_t dir_close(int32_t fd) {
  *
  */
 int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
-    pcb_t* curr_pcb = get_curr_pcb();
+    pcb_t* curr_pcb = get_pcb_ptr();
     fd_t* file_desc = &curr_pcb->file_array[fd];
-    /* Update the file_pos to what file should be read */
-    file_desc->file_pos++;
     /* We are done reading all the files in the directory */
     if (file_desc->file_pos >= boot_block->dir_count)
         return 0;
@@ -276,7 +274,8 @@ int32_t dir_read(int32_t fd, void* buf, int32_t nbytes) {
     while (dir.filename[i] != '\0' && i < nbytes) {
         i++;
     }
-
+    /* Update the file_pos to what file should be read */
+    file_desc->file_pos++;
     /* Return the number of bytes read from the filename */
     return i;
 }

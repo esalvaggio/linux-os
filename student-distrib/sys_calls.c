@@ -1,4 +1,5 @@
 #include "sys_calls.h"
+#include "terminals.h"
 #include "fs_setup.h"
 #include "devices/rtc.h"
 #include "devices/keyboard.h"
@@ -31,8 +32,7 @@
 #define ERROR               -1
 
 /* Global PCB file array */
-// pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0};
+pcb_t* pcb_processes[NUM_OF_PROCESSES] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 
 //Arrays for file operations pointer table
 fotp_t file_funcs = {file_open, file_close, file_read, file_write};
@@ -59,7 +59,7 @@ int curr_num_of_shells = 0;
 int32_t find_new_process() {
     int i;
     for (i = 0; i < NUM_OF_PROCESSES; i++) {
-        if (pcb_processes[i] == NULL) {
+        if (pcb_processes[i] == 0x0) {
           /* Found an open pcb */
           return i;
         }
@@ -128,41 +128,61 @@ int32_t halt(uint8_t status) {
     /* Check if we are halting from the base shell. If we are,
      * then we want to restart the shell but not leave from it.
      */
-    pcb_t* curr_pcb = get_curr_pcb();
+    cli();
+    process_t* curr_process = get_curr_process();
+    pcb_t* curr_pcb = curr_process->curr_pcb;
+    if (curr_pcb == 0x0) return ERROR;
+    term_t* curr_terminal = get_term_by_index(curr_process->index);
+    int i;
 
-    if (curr_pcb != NULL && curr_pcb->process_num == 0) {
-        pcb_processes[0] = NULL;
-        execute((uint8_t*)"shell");
+    /* Check if we are trying to halt from our base shell in terminal */
+
+
+    if (curr_terminal->num_of_pcbs == 1) {
+          int pcb_index = curr_terminal->pcb_processes[0]->process_num;
+          pcb_processes[pcb_index] = NULL;
+          curr_terminal->pcb_processes[0] = NULL;
+          curr_process->curr_pcb = NULL;
+          curr_terminal->num_of_pcbs--;
+          (void)total_pcbs_created(-1);
+          execute((uint8_t*)"shell");
     }
+    else {
+
+
+    //printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /*
       1. Restore parent data
         - parent process number (most important)
           -> look in PCB for this
     jumps into execute, restores eip
     */
-    int index;
+    //int index;
     int current_num = 0;
     int old_num = 0;
     pcb_t * pcb_parent;
-    for (index = 0; index < NUM_OF_PROCESSES; index++){
-        if (pcb_processes[index] != 0x0){
-          if (pcb_processes[index]->in_use == 1){
-
-              //first process does not have a parent so skip parent stuff
-              if(pcb_processes[index]->parent_pcb == 0x0)
-                  break;
 
 
-              current_num = pcb_processes[index]->process_num;
-              pcb_parent = (pcb_t *)pcb_processes[index]->parent_pcb;
-              old_num = pcb_parent->process_num;
-              pcb_processes[index]->in_use = 0; //turn child off
-              pcb_parent->in_use = 1; //turn parent on
-              break;
-          }
+
+    if (curr_pcb->parent_pcb != 0x0) {
+        current_num = curr_pcb->process_num;
+        pcb_parent = (curr_pcb->parent_pcb);
+        old_num = pcb_parent->process_num;
+
+        /* 3. Clear file descriptors */
+
+        for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
+            /* close all files in the pcb */
+            close(i);
         }
+
+        curr_pcb->in_use = 0;
+        pcb_parent->in_use = 1;
     }
 
+    //printf("Curr Num: %d \n", current_num);
+
+    //printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /*
           2. Restore parent paging
             - similar to how we set up paging in execute()
@@ -172,40 +192,53 @@ int32_t halt(uint8_t status) {
     page_dir_init(VIRTUAL_ADDRESS, old_addr); //set the paging back to 8MB
 
       /*
-      3. Clear all file descriptors
-        - calling close()
       4. Jump back to parent process
     */
-
-    // step 3
-    int i;
-    for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
-        /* close all files in the pcb */
-        close(i);
-    }
 
     // step 4
     // We need to return to the parent esp/ebp that should be saved in the pcb structure
     tss.esp0 = pcb_processes[old_num]->esp0;
     tss.ss0 = pcb_processes[old_num]->ss0; //kernel stack segment = kernel_DS
 
-    /*
-     * We need to restore the previous ebp (entering EXECUTE) in order to return
-     */
-    int32_t old_ebp = pcb_processes[current_num]->ebp;
 
-    //Finally, Clear pcb_processes[current_num]
+    for(i = 0; i < 4; i++)
+    {
+        if(curr_terminal->pcb_processes[i] == curr_pcb)
+        {
+            curr_terminal->pcb_processes[i] = NULL;
+            curr_terminal->pcb_processes[i-1]->in_use = 1;
+            break;
+        }
+    }
+
     pcb_processes[current_num] = 0x0;
-    //Changes ebp to value when we entered execute, and jump back to execute
+    curr_process->curr_pcb = pcb_parent;
+    curr_pcb = 0x0;
+    curr_terminal->num_of_pcbs--;
+    (void)total_pcbs_created(-1);
+
+    /* Obtain the old_ebp. The value stored at this ebp is the one we want to use
+      to return back. */
+    uint32_t* old_ebp;
     asm volatile ("                         \n\
-                    movl %0, %%EBP          \n\
-                    movl $0, %%eax          \n\
+                    movl %%ebp, %0          \n\
+                    "
+                    :"=r"(old_ebp)
+                    :
+                  );
+
+    /* Dereference the pointer and update the current ebp. */
+    asm volatile ("                         \n\
+                    movl %0, %%ebp          \n\
+                    movl %1, %%eax          \n\
                     jmp END_OF_EXECUTE      \n\
                     "
                     :
-                    : "r"(old_ebp)               // (no) ouput
-                  );
+                    : "r"(*old_ebp), "r"((uint32_t)status)
+                );
+
     //Will never reach, need to include regardless
+}
     return ERROR;
 }
 /*
@@ -224,11 +257,7 @@ int32_t execute(const uint8_t* command) {
 
     //Find new process index
     int32_t process_num = find_new_process();
-    if (process_num == ERROR) {
-        printf("Maximum processes running... Cannot execute.\n");
-        sti();
-        return 0;
-    }
+    term_t* curr_terminal = get_curr_terminal();
     /* Instructions
       1. Parse  ---
           - command: ["filename" + " " + "string of args"]
@@ -242,6 +271,7 @@ int32_t execute(const uint8_t* command) {
     uint8_t buf[FILENAME_SIZE];
 
     uint8_t space_flag = 0;
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     for (command_idx = 0; command_idx < command_length; command_idx++) {
         if (command[command_idx] == ' ') {
@@ -273,6 +303,7 @@ int32_t execute(const uint8_t* command) {
         buf[command_length] = '\0';
         fname = buf;
     }
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /*  2. Executable Check   ---
           - check if file is an executable
@@ -288,7 +319,15 @@ int32_t execute(const uint8_t* command) {
           return ERROR;
       }
 
-
+    /* Check if we have reached the max processes for one terminal */
+    if (curr_terminal->visited == 1) {
+      if (total_pcbs_created(0) == NUM_OF_PROCESSES) {
+          printf("Maximum processes running... Cannot execute.\n");
+          sti();
+          return 0;
+      }
+    }
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     //ex_buf stores first 4 bytes to check it is a valid command
     int8_t ex_buf[EXEC_CHECK_CHARS];
@@ -310,12 +349,14 @@ int32_t execute(const uint8_t* command) {
     }
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /*
       3. Paging
           - each process gets its own 4 MB page */
     uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
     page_dir_init(VIRTUAL_ADDRESS, phys_addr);
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
 
     /*
@@ -336,6 +377,7 @@ int32_t execute(const uint8_t* command) {
         sti();
         return ERROR;
     }
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* Flush TLB by writing to CR3 */
     flushTLB();
@@ -352,27 +394,29 @@ int32_t execute(const uint8_t* command) {
             -> ... so on
     */
     pcb_t * pcb_new = create_new_pcb(process_num);
+    pcb_new->term_index = curr_terminal->term_index;
     pcb_processes[process_num] = pcb_new;
+    /* Update the pcb array in our current terminal */
+
+    pcb_t* curr_pcb = get_pcb_ptr();
+    // set_terminal_pcb(pcb_new);
+
+    // pcb_t * curr_pcb = get_pcb_ptr();
+    //set_terminal_pcb(pcb_new);
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
+
     /* First, check if there is a process running already. Because we are
     only running one shell, the running process is the parent of the process
-    being called right now. If no processes are found, now parent exists
+    being called right now. If no processes are found, no parent exists
     */
-    int index = 0;
-    for (; index < NUM_OF_PROCESSES; index++){
 
-        if (pcb_processes[index] != 0x0){
-            if (pcb_processes[index]->in_use == 1){
-                pcb_new->parent_pcb = (int32_t)pcb_processes[index];
-                pcb_processes[index]->in_use = 0;
-                break;
-              }
-          }
-
+    if (curr_pcb != NULL) {
+        pcb_new->parent_pcb = curr_pcb;
+        curr_pcb->in_use = 0;
     }
-    pcb_processes[process_num]->in_use = 1;
 
 
-
+    pcb_new->in_use = 1;
     /* Copy arguments into pcb */
     if(space_flag == 1)
     {
@@ -394,23 +438,29 @@ int32_t execute(const uint8_t* command) {
           - should not be able to leave shell!!
             -> first user-level program called in kernel.c
     */
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
-    //tss.esp0 = pcb_new->mem_addr_start + FOUR_BYTE_ADDR; //8MB - 8KB(process#) - 4 (address length)
     tss.esp0 = ADDR_8MB - ADDR_8KB*(process_num) - FOUR_BYTE_ADDR;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
 
-    pcb_processes[process_num]->esp0 = tss.esp0;
-    pcb_processes[process_num]->ss0 = tss.ss0;
+    pcb_new->esp0 = tss.esp0;
+    pcb_new->ss0 = tss.ss0;
 
     //Next few lines save current ebp into the process control block.
     // This is needed when we eventually jump back to this function + return
     uint32_t curr_ebp;
+    uint32_t curr_esp;
     asm volatile("                           \n\
                   movl %%ebp, %0             \n\
+                  movl %%esp, %1             \n\
                   "
-                  : "=r"(curr_ebp)
+                  : "=r"(curr_ebp), "=r"(curr_esp)
                 );
+
    pcb_new->ebp = curr_ebp;
+   pcb_new->esp = curr_esp;
+   set_terminal_pcb(pcb_new);
+   //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* Explanation of following assembly code:
        We need to push 0x2B (which is the USER_DS defined in x86_desc.h:15)
@@ -429,11 +479,15 @@ int32_t execute(const uint8_t* command) {
           the 10th bit (which will call an sti upon the iret, which is
           needed because we have not left the cli defined at the top)
     */
+    //printf("total pcbs: %d\n", total_pcbs_created(0));
+    //printf("term pcbs: %d\n", curr_terminal->num_of_pcbs);
+    //printf("process num: %d\n", process_num);
 
     /*
     HALT will jump to END_OF_EXECUTE tag, and perform
     a leave ret. HALT restores the ebp of execute.
     */
+    sti();
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
@@ -458,7 +512,7 @@ int32_t execute(const uint8_t* command) {
                     : "eax","edx"    // clobbered register
                   );
 
-    return SUCCESS; //shouldn't get this far
+    return ERROR; //shouldn't get this far
 }
 /*
  * read()
@@ -477,7 +531,7 @@ int32_t read(int32_t fd, void* buf, int32_t nbytes) {
         return ERROR;
 
     //Get current PCB
-    pcb_t * pcb_curr = get_curr_pcb();
+    pcb_t * pcb_curr = get_pcb_ptr();
     if (pcb_curr == NULL) return ERROR;
 
     /* Check file position */
@@ -512,8 +566,10 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
     if (fd < 0 || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
-    pcb_t * pcb_curr = get_curr_pcb();
-    if (pcb_curr == NULL) return ERROR;
+    pcb_t* pcb_curr = get_pcb_ptr();
+    if (pcb_curr == NULL) {
+        return ERROR;
+    }
 
     /* Check file position */
     fd_t file_desc = pcb_curr->file_array[fd];
@@ -525,9 +581,9 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 
     if(file_desc.file_ops_table_ptr.write == NULL)
     {
-      return ERROR;
+        sti();
+        return ERROR;
     }
-
 
     return file_desc.file_ops_table_ptr.write(fd, buf, nbytes);
 }
@@ -548,7 +604,7 @@ int32_t write(int32_t fd, const void* buf, int32_t nbytes) {
 int32_t open(const uint8_t* filename) {
 
     dentry_t dentry;
-    pcb_t * pcb_curr = get_curr_pcb();
+    pcb_t * pcb_curr = get_pcb_ptr();
     if (pcb_curr == NULL) return ERROR;
 
     //Check if file exists, get it's dentry
@@ -609,7 +665,7 @@ int32_t close(int32_t fd) {
     if (fd < DYNAMIC_FILE_START || fd >= FILE_ARRAY_SIZE)
         return ERROR;
 
-    pcb_t * pcb_curr = get_curr_pcb();
+    pcb_t * pcb_curr = get_pcb_ptr();
 
     if (pcb_curr->file_array[fd].flags == 1){
       pcb_curr->file_array[fd].flags = 0;
@@ -639,8 +695,8 @@ int32_t getargs(uint8_t* buf, int32_t nbytes) {
     if(buf == NULL || nbytes < 0) //invalid parameters
         return ERROR;
 
-    pcb_t * curr_pcb = get_curr_pcb(); //get PCB
-    if(curr_pcb->args == NULL) //PCB has no args, failure
+    pcb_t * curr_pcb = get_pcb_ptr(); //get PCB
+    if(curr_pcb->args[0] == '\0') //PCB has no args, failure
         return ERROR;
 
     int x;
@@ -695,19 +751,14 @@ int32_t sigreturn(void) {
 }
 
 /*
- * get_curr_pcb()
+ * get_pcb_ptr()
  * INPUTS: NONE
  * OUTPUTS: pointer to the current pcb
  * Finds the one active pcb. Nothing special, just used at beginning
- * of every function and figured it would be better to make into a routine
+ * of every function and figured it would be better to make into a routine.
+ * Gets current process's pcb
 */
-pcb_t * get_curr_pcb(){
-  int i;
-  //Get current PCB
-  for (i = 0 ; i < NUM_OF_PROCESSES; i++){
-      if (pcb_processes[i] != 0x0){
-        if (pcb_processes[i]->in_use == 1) return pcb_processes[i];
-      }
-  }
-  return NULL;
+pcb_t* get_pcb_ptr() {
+  process_t* p = get_curr_process();
+  return p->curr_pcb;
 }

@@ -76,7 +76,33 @@ void general_protection() {
 
 void page_fault() {
   printf("EXCEPTION: Page fault.\n");
+
+  int32_t old_ebp = -1;
+  int32_t error_code = 0;
+  asm volatile ("                         \n\
+                  movl %%CR2, %0          \n\
+                  movl 4(%%ESP), %1       \n\
+                  "
+                  : "=r"(old_ebp), "=r"(error_code)
+                );
+
+  printf("Located at Virtual Address 0x%x\n", old_ebp);
+
+  if (error_code & 0x1)printf("Caused by Page Protection Violation.\n");
+  else printf("Caused by a non-present page.\n");
+  if (error_code & 0x2) printf("Page fault caused by a page write.\n");
+  else printf("Page fault was caused by a page read.\n");
+
+  if (error_code & 0x4){
+      printf("Page fault caused while CPL=3.\n");
+      printf("Does not necessarily mean privilege violation.)\n");
+  }
+  if (error_code & 0x8) printf("Page fault was caused by writing a 1 in a reserved field.\n");
+  if (error_code & 0x10) printf("Page fault caused by an instruction fetch.\n");
+
+  //printf("Error Code: 0x%x\n", error_code);
   halt(0);
+  //while(1);
 }
 
 void reserved() {

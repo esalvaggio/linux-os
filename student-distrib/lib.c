@@ -11,7 +11,7 @@
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
-void scroll();
+
 
 /* void clear(void);
  * Inputs: void
@@ -21,8 +21,47 @@ void clear(void) {
     int32_t i;
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+        //int index = get_curr_terminal()->term_index;
+  //      if(index == 0){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
+        // }else if(index == 1){
+        //   *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
+        // }else if(index == 2){
+        //   *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
+        // }
     }
+}
+/*
+get_x_cursor()
+Inputs: NONE
+Outputs: current x cursor position
+This is a very simple function that gets the cursor position
+*/
+int get_x_cursor()
+{
+  return screen_x;
+}
+
+/*
+get_y_cursor()
+Inputs: NONE
+Outputs: current y cursor position
+This is a very simple function that gets the cursor position
+*/
+int get_y_cursor()
+{
+  return screen_y;
+}
+
+/*
+* set_cursor()
+* Inputs: x/y ->x/y coordinates to print cursor to
+* Outputs: none
+* This function updates the cursor on the screen from a specific terminal
+*/
+void set_cursor(int x, int y) {
+    screen_x = x;
+    screen_y = y;
 }
 
 /*
@@ -40,6 +79,20 @@ void clear(void) {
   outb((uint8_t) ((pos >> 8) & 0xFF),0x3D5);
   screen_x = x; //modify global coordinates to provided coordinates
   screen_y = y;
+ }
+
+/*
+* update_term_cursor()
+* Input: t -> current terminal, x/y -> what x/y position to set cursor to
+* Output: NONE
+* This function updates the terminal's x/y cursor to the desired coordinates by
+* the x/y parameters. This is used to set the cursors in the terminal so we can
+* write to fake video memory when the process isn't visible
+*/
+ void update_term_cursor(term_t* t, int x, int y)
+ {
+   t->cursor_x = x; //modify global coordinates to provided coordinates
+   t->cursor_y = y;
  }
 
 /* Standard printf().
@@ -199,13 +252,27 @@ void putc(uint8_t c) {
 
         screen_x--; //move back/left one
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' '; //fill in with space
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB; //fill in color
+//        int index = get_curr_terminal()->term_index;
+//        if(index == 0){
+          *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
+        // }else if(index == 1){
+        //   *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR2;
+        // }else if(index == 2){
+        //   *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR3;
+        // }
 
     }
     else
     {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c; //fill in with character
-        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = ATTRIB;
+//        int index = get_curr_terminal()->term_index;
+//        if(index == 0){
+            *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
+        // }else if(index == 1){
+        //     *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR2;
+        // }else if(index == 2){
+        //     *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR3;
+        // }
         screen_x++;
 
         if(screen_x == NUM_COLS && screen_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
@@ -225,6 +292,72 @@ void putc(uint8_t c) {
 }
 
 /*
+* putc_dif_term()
+* Inputs: p -> current process, c -> char to write
+* Outputs: NONE
+* This function is used to print to each process' respective video memory
+* This function needs to be called when the scheduler is running and the currently
+* displayed terminal is not the same as the terminal with the process running.
+* The only difference between this and putc is that this function does not write
+* to video memory
+
+*/
+void putc_dif_term(process_t* p, uint8_t c) {
+    term_t* t = terminals[p->index];
+    //int index = t->term_index;
+
+    if(c == '\n' || c == '\r'){ //new line case
+       t->cursor_y++;
+       t->cursor_x = 0;
+      if(t->cursor_y == NUM_ROWS){
+         term_scroll(t); //scroll if enter is pressed on the last row
+         return;
+       }
+    }
+    else if(c == '\b') //backspace case
+    {
+
+        t->cursor_x--; //move back/left one
+        *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1)) = ' '; //fill in with space
+
+    //    if(index == 0){
+          *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
+        // }else if(index == 1){
+        //   *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR2;
+        // }else if(index == 2){
+        //   *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR3;
+        // }
+
+    }
+    else
+    {
+        *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1)) = c; //fill in with character
+
+      //  if(index == 0){
+            *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
+        // }else if(index == 1){
+        //     *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR2;
+        // }else if(index == 2){
+        //     *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR3;
+        // }
+        t->cursor_x++;
+
+        if(t->cursor_x == NUM_COLS && t->cursor_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
+        {
+          term_scroll(t); //call helper function
+          return;
+        }
+
+        else if(t->cursor_x == NUM_COLS) //check if at right end of screen
+        {
+          t->cursor_y++; //move down
+        }
+        t->cursor_x %= NUM_COLS;
+        t->cursor_y = (t->cursor_y + (t->cursor_x / NUM_COLS)) % NUM_ROWS;
+    }
+}
+
+/*
 * scroll()
 * INPUT: none
 * OUTPUT: none
@@ -233,21 +366,77 @@ void putc(uint8_t c) {
 */
 void scroll()
 {
+  //int index = get_curr_terminal()->term_index;
   int32_t i,j;
   for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
   {
       *(uint8_t *)(video_mem + (i << 1)) =  *(uint8_t *)(video_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
-      *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
+
+  //    if(index == 0){
+          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
+      // }else if(index == 1){
+      //     *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
+      // }else if(index == 2){
+      //     *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
+      // }
+
   }
   for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
     *(uint8_t *)(video_mem + (j << 1)) = ' ';
-    *(uint8_t *)(video_mem + (j << 1) + 1) = ATTRIB;
+
+//    if(index == 0){
+        *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR1;
+    // }else if(index == 1){
+    //     *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR2;
+    // }else if(index == 2){
+    //     *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR3;
+    // }
   }
   screen_x = 0;
   screen_y = NUM_ROWS-1;
   update_cursor(screen_x,screen_y);
 }
 
+/*
+* term_scroll()
+* Input: t->current terminal displayed
+* Output: NONE
+* This function is called when we want to scroll the terminal's video memory
+* instead of the actual video memory. It is fundamentally the same as the above
+* scroll() function but it writes to a different memory location
+*/
+void term_scroll(term_t* t)
+{
+  //int index = t->term_index;
+  int32_t i,j;
+  for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
+  {
+      *(uint8_t *)(t->vid_mem + (i << 1)) =  *(uint8_t *)(t->vid_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
+
+      // if(index == 0){
+          *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR1;
+      // }else if(index == 1){
+      //     *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR2;
+      // }else if(index == 2){
+      //     *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR3;
+      // }
+
+  }
+  for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
+    *(uint8_t *)(t->vid_mem + (j << 1)) = ' ';
+
+//    if(index == 0){
+        *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR1;
+  //   }else if(index == 1){
+  //       *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR2;
+  //   }else if(index == 2){
+  //       *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR3;
+  //   }
+   }
+  t->cursor_x = 0;
+  t->cursor_y = NUM_ROWS-1;
+  // update_cursor(screen_x,screen_y);
+}
 
 
 /* int8_t* itoa(uint32_t value, int8_t* buf, int32_t radix);

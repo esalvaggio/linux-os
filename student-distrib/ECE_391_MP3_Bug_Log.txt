@@ -1,0 +1,40 @@
+﻿BUG LOG
+Checkpoint 1:
+* Keyboard could not print all chars if typing was “too fast”
+   * We accidentally called inb() to get the scancode twice instead of once, slowing down the reading of the chars
+
+
+Checkpoint 2:
+* Scrolling did not work
+   * When we shifted the visible memory up, we forgot to make a special case for the bottom row because our algorithm (current_position_pixel[x][y] = current_position_pixel[x][y+1]) failed because nothing was at the y+1 row when    y = the number of rows
+* RTC read/write not working
+   * We misread the argument description for RTC read/write so they were not being called correctly by other processes
+* Broken RTC tests: 
+   * There was a problem with testing all frequencies (plus added ‘bad’ frequencies) - it was crashing and not showing off write and open correctly.
+   * Test function is now fixed with added functionality.
+
+
+Checkpoint 3:
+* Counter doesn’t finish 
+   * Assembly linkage was not used for the RTC
+* “>testprint cat” pagefaults
+   * We did not properly handle the args of a command for a command that should not have args
+* Halt failed to return -> page fault
+   * We did not save the EBP of the process before the context switch so it could not properly return
+
+
+Checkpoint 4:
+* cat/grep with no arguments failed
+   * We checked that our array “args” was NULL to see if there were no arguments when instead we should have checked that the first element of “args” was NULL because if an array is allocated but empty, it is not == NULL
+* Filesystem Fish 
+   * When fish was run, the image was static with frame1.txt because we were accessing the wrong directory inode
+
+Checkpoint 5:
+* PIT freezing the keyboard
+   * We did not realize that the PIT needed assembly linkage to be properly initialized so it would freeze the keyboard from typing occasionally from not being initialized correctly
+* Halt problems when switching between terminals
+   * Number of processes global variable was not properly decremented when a process was halted so it page faulted because it tried to access an index outside of the array 
+* Counter/Pingpong were printed to all terminals
+   * We did not create separate “video memories” to write to when the process running was not on the current terminal (the one displaying video memory)
+* PCB by process vs PCB by terminal
+   * Our original implementation was that we would find the active PCB by its terminal, when we should have searched by the process running. While the previous implementation worked for one terminal/multiple terminals, it failed to work when we needed to implement scheduling

@@ -32,6 +32,7 @@
 
 #define RTC_INDEX         40
 #define RTC_IRQ            8
+#define SLAVE_IRQ          2
 
 void RTC_Init();
 void RTC_Handler();
