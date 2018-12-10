@@ -7,6 +7,13 @@
 // term_t* terminals[NUM_OF_TERMINALS] = {0x0, 0x0, 0x0};
 int curr_total_pcbs = 0;
 
+/*
+* create_terminals()
+* Input: NONE
+* Output: NONE
+* This function initializes the 3 terminals by calling create_new_term, and setting the first
+* terminal to active
+*/
 void create_terminals() {
     int i;
     for (i = 0; i < NUM_OF_TERMINALS; i++)
@@ -28,6 +35,13 @@ void create_terminals() {
     // execute((uint8_t*)"shell");
 }
 
+/*
+* create_new_term()
+*Input: term_index->which terminal to make (0,1,2)
+*Output: None
+* This function creates a term_t struct and initializes all of the elements in the struct.
+* This is called by create_terminals() to make all the terminals
+*/
 void create_new_term(int term_index) {
 
     if (term_index < 0 || term_index >= NUM_OF_TERMINALS) //invalid terminal number
@@ -54,11 +68,24 @@ void create_new_term(int term_index) {
     /* Update our total number of pcb's used */
     curr_total_pcbs++;
 }
+
+/*
+*get_term_by_index()
+*Input: index->which terminal to get (0,1,2)
+*Output: term_t * corresponding to which terminal we asked for
+* This simple function gets the terminal based on its index
+*/
 term_t* get_term_by_index(int32_t index){
     if (index < 0 || index >= NUM_OF_TERMINALS) return NULL;
     return terminals[index];
 }
 
+/*
+* get_curr_terminal()
+*Input: NONE
+*Output: term_t *  corresponding to the active (displayed) terminal
+*This function gets the active terminal to tell other functions which one is in use
+*/
 term_t* get_curr_terminal() {
     int i;
     for (i = 0; i < NUM_OF_TERMINALS; i++) {
@@ -70,6 +97,14 @@ term_t* get_curr_terminal() {
     return NULL;
 }
 
+/*
+*copy_screen_text()
+*Input: t -> the terminal that we want to copy the screen into
+*Output: NONE
+*This function copies whatever is in video memory into the fake video corresponding to the
+*terminal in the parameter. This is used by scheduling so that a process can be correctly
+*displayed when switching between terminals
+*/
 void copy_screen_text(term_t* terminal) {
     if (terminal == 0x0)
         return;
@@ -84,6 +119,14 @@ void copy_screen_text(term_t* terminal) {
     memcpy(terminal->vid_mem, (uint8_t*)video_mem, 2*VID_MEM_SIZE);
 }
 
+/*
+*print_screen_text()
+*Input: t -> the terminal that we want to write to the screen
+*Output: NONE
+*This function copies what is saved in the fake video memory corresponding to the terminal
+*to video memory so that it can be displayed. This is used by scheduling so that a process can
+*be displayed when switching between terminals
+*/
 void print_screen_text(term_t* terminal) {
     cli();
     if (terminal == 0x0)
@@ -110,10 +153,24 @@ void print_screen_text(term_t* terminal) {
     sti();
 }
 
+/*
+*total_pcbs_created()
+*Input: num->what to add to the global num of pcbs variable
+*Output: changed num_of_pcbs based on  input
+*This function modifies the global num_of_pcbs variable so that other functions can use it. It
+*returns the updated num_of_pcbs
+*/
 int total_pcbs_created(int num) {
     return curr_total_pcbs += num;
 }
 
+/*
+*set_terminal_pcb()
+*Input: pcb->pcb to set to the terminal
+*Output: NONE
+*This function assigns the given pcb to the active (displayed) terminal and updates the total
+* num_of_pcbs
+*/
 void set_terminal_pcb(pcb_t* pcb) {
     if (pcb == NULL)
         return;
@@ -142,6 +199,14 @@ void set_terminal_pcb(pcb_t* pcb) {
     curr_total_pcbs++;
 }
 
+/*
+*switch_terminal()
+*Input: old_term ->current_term, new_term->term to switch to
+*Output: NONE
+*This function is called when ALT+(1/2/3) is called to switch between terminals. It copies the
+*screen from the old term, sets the old term to inactive and the new term to active, and then
+*prints the saved screen from the new term
+*/
 void switch_terminal(int old_term, int new_term) {
     cli();
     if (old_term == new_term)

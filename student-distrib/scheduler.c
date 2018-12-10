@@ -7,6 +7,12 @@
   This might all be wrong.
 */
 
+/*
+*switch_processes()
+*Input:NONE
+*Output: NONE
+*This function is the main scheduling function: it changes the current process, modifies the TSS, restores paging to the new process, and then context switches to the next process by modifying the ebp/esp
+*/
 void switch_processes(){
     /* Reset the video memory */
     uint8_t* screen_start;
@@ -61,6 +67,13 @@ void switch_processes(){
     flushTLB();
 }
 
+/*
+*set_up_processes()
+*Input:NONE
+*Output:NONE
+*This function initializes all of the elements of the process struct and links them together as a
+*linked list
+*/
 void set_up_processes() {
     /* Initialize process pointer array */
     int i;
@@ -90,11 +103,25 @@ void set_up_processes() {
     next_process = 0;
 }
 
+/*
+*get_process_by_index()
+*Input: index -> the index desired
+*Output: process_t * that has the index in the parameter
+*This function returns the process that has the index requested. This is called when a pcb wants
+* get a process by its terminal index
+*/
 process_t* get_process_by_index(int32_t index){
     if (index <0 || index >= MAX_PROCESSES) return NULL;
     return processes[index];
 }
 
+/*
+*get_curr_process()
+*Input: NONE
+*Output: process_t * that is currently active
+*This function finds the process that is currently being handled and returns it so that other
+*functions can use its contents
+*/
 process_t* get_curr_process() {
     int i;
     for (i = 0; i < MAX_PROCESSES; i++) {
