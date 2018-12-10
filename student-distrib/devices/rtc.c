@@ -66,7 +66,7 @@ void RTC_Handler(){
         effective_frequency = frequency / freqs[i];
         if (process_count[i] >= effective_frequency){
             process_count[i] = 0;
-            flags[i] = 1;
+            flags[i] += 1;
         }
     }
 
@@ -95,6 +95,7 @@ int32_t RTC_write(int32_t fd, const void* buf, int32_t nbytes){
     process_t* process = get_curr_process();
     process->rtc_frequency = freq;
     freqs[process->index] = freq;
+    flags[process->index] = 0;
 
 
     //don't actually want to change RTC frequency - changing is time consuming
@@ -163,10 +164,10 @@ int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes){
     int index = get_curr_process()->index;
 
 
-    while (curr != 1){
+    do{
         curr = flags[index];
-    }
-    flags[index] = 0;
+    }while(curr == 0);
+    flags[index] --;
 
     // //Get masking data for master pic
     // uint8_t data = inb(MASTER_8259_DATA);
