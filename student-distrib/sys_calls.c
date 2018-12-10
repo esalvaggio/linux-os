@@ -180,9 +180,6 @@ int32_t halt(uint8_t status) {
         pcb_parent->in_use = 1;
     }
 
-    //printf("Curr Num: %d \n", current_num);
-
-    //printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /*
           2. Restore parent paging
             - similar to how we set up paging in execute()
@@ -271,7 +268,6 @@ int32_t execute(const uint8_t* command) {
     uint8_t buf[FILENAME_SIZE];
 
     uint8_t space_flag = 0;
-    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     for (command_idx = 0; command_idx < command_length; command_idx++) {
         if (command[command_idx] == ' ') {
@@ -303,7 +299,6 @@ int32_t execute(const uint8_t* command) {
         buf[command_length] = '\0';
         fname = buf;
     }
-    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /*  2. Executable Check   ---
           - check if file is an executable
@@ -327,7 +322,6 @@ int32_t execute(const uint8_t* command) {
           return 0;
       }
     }
-    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     //ex_buf stores first 4 bytes to check it is a valid command
     int8_t ex_buf[EXEC_CHECK_CHARS];
@@ -349,7 +343,6 @@ int32_t execute(const uint8_t* command) {
     }
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
-    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /*
       3. Paging
@@ -377,7 +370,6 @@ int32_t execute(const uint8_t* command) {
         sti();
         return ERROR;
     }
-    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* Flush TLB by writing to CR3 */
     flushTLB();
@@ -399,11 +391,6 @@ int32_t execute(const uint8_t* command) {
     /* Update the pcb array in our current terminal */
 
     pcb_t* curr_pcb = get_pcb_ptr();
-    // set_terminal_pcb(pcb_new);
-
-    // pcb_t * curr_pcb = get_pcb_ptr();
-    //set_terminal_pcb(pcb_new);
-    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* First, check if there is a process running already. Because we are
     only running one shell, the running process is the parent of the process
@@ -438,7 +425,6 @@ int32_t execute(const uint8_t* command) {
           - should not be able to leave shell!!
             -> first user-level program called in kernel.c
     */
-    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     tss.esp0 = ADDR_8MB - ADDR_8KB*(process_num) - FOUR_BYTE_ADDR;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
@@ -460,7 +446,6 @@ int32_t execute(const uint8_t* command) {
    pcb_new->ebp = curr_ebp;
    pcb_new->esp = curr_esp;
    set_terminal_pcb(pcb_new);
-   //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* Explanation of following assembly code:
        We need to push 0x2B (which is the USER_DS defined in x86_desc.h:15)
@@ -479,9 +464,7 @@ int32_t execute(const uint8_t* command) {
           the 10th bit (which will call an sti upon the iret, which is
           needed because we have not left the cli defined at the top)
     */
-    //printf("total pcbs: %d\n", total_pcbs_created(0));
-    //printf("term pcbs: %d\n", curr_terminal->num_of_pcbs);
-    //printf("process num: %d\n", process_num);
+
 
     /*
     HALT will jump to END_OF_EXECUTE tag, and perform

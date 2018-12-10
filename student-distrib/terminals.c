@@ -33,9 +33,7 @@ void create_terminals() {
     terminals[0]->in_use = 1;
     processes[0]->active = 1;
     /* Execute a new shell for the terminal 1 shell */
-    // clear();
-    // update_cursor(0,0);
-    // execute((uint8_t*)"shell");
+
 }
 
 /*
@@ -113,10 +111,7 @@ void copy_screen_text(term_t* terminal) {
         return;
 
     char* video_mem = (char *)VID_MEM_START;
-    // int32_t i;
-    // for (i = 0; i < VID_ROWS * VID_COLS; i++) {
-    //     terminal->screen_text[i] = *(uint8_t *)(video_mem + (i << 1));
-    // }
+
     terminal->cursor_x = get_x_cursor();
     terminal->cursor_y = get_y_cursor();
     memcpy(terminal->vid_mem, (uint8_t*)video_mem, TWICE*VID_MEM_SIZE);
@@ -138,18 +133,7 @@ void print_screen_text(term_t* terminal) {
     /* Reset our cursors so we print from the beginning */
     // update_cursor(0,0);
     char* video_mem = (char *)VID_MEM_START;
-    // int32_t i;
-    // /* Update the video memory with the terminal's buffer */
-    // for (i = 0; i < VID_ROWS * VID_COLS; i++) {
-    //     *(uint8_t *)(video_mem + (i << 1)) = terminal->screen_text[i];
-    //     if(terminal->term_index == 0){
-    //       *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
-    //     }else if (terminal->term_index == 1){
-    //       *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
-    //     }else if(terminal->term_index == 2){
-    //       *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
-    //     }
-    // }
+
     /* Update the cursor */
     update_cursor(terminal->cursor_x, terminal->cursor_y);
     memcpy((uint8_t*)video_mem, terminal->vid_mem, TWICE*VID_MEM_SIZE);
@@ -257,8 +241,6 @@ void switch_terminal(int old_term, int new_term) {
     }
     /* Print the data of the terminal we are switching to */
     print_screen_text(terminals[new_term]);
-    // uint8_t* screen_start;
-    // vidmap(&screen_start);
-    // page_dir_init_fourkb((uint32_t)screen_start, (uint32_t)terminals[new_term]->vid_mem);
+
     sti();
 }

@@ -88,7 +88,7 @@ void Keyboard_Handler() {
     status = inb(STATUS_PORT);
     if (status & LOW_BITMASK) { // get last bit value of status is the character to be displayed
           scan_code = inb(DATA_PORT);
-          // printf("%d",scan_code);
+
           if(scan_code == CTRL_KEY_DOWN){
               ctrl_flag = 1;
           }
@@ -120,7 +120,6 @@ void Keyboard_Handler() {
           if(alt_flag == 1){
             if(scan_code >= F1_KEY_DOWN && scan_code <= F3_KEY_DOWN){
               terminal_fn_key = scan_code - F1_KEY_DOWN;
-              // printf("%d",terminal_fn_key);
               changed_terminals = 1; //flag to indicate that we changed terminals
               send_eoi(KEYBOARD_IRQ); //keyboard port on master
               switch_terminal(terminal_num, terminal_fn_key);

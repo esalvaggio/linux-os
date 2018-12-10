@@ -21,14 +21,9 @@ void clear(void) {
     int32_t i;
     for (i = 0; i < NUM_ROWS * NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
-        //int index = get_curr_terminal()->term_index;
-  //      if(index == 0){
+
           *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
-        // }else if(index == 1){
-        //   *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
-        // }else if(index == 2){
-        //   *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
-        // }
+
     }
 }
 /*
@@ -249,41 +244,25 @@ void putc(uint8_t c) {
     }
     else if(c == '\b') //backspace case
     {
-
         screen_x--; //move back/left one
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = ' '; //fill in with space
-//        int index = get_curr_terminal()->term_index;
-//        if(index == 0){
-          *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
-        // }else if(index == 1){
-        //   *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR2;
-        // }else if(index == 2){
-        //   *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR3;
-        // }
-
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
     }
     else
     {
         *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1)) = c; //fill in with character
-//        int index = get_curr_terminal()->term_index;
-//        if(index == 0){
-            *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
-        // }else if(index == 1){
-        //     *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR2;
-        // }else if(index == 2){
-        //     *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR3;
-        // }
+        *(uint8_t *)(video_mem + ((NUM_COLS * screen_y + screen_x) << 1) + 1) = TEXT_COLOR1;
         screen_x++;
 
         if(screen_x == NUM_COLS && screen_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
         {
-          scroll(); //call helper function
-          return;
+            scroll(); //call helper function
+            return;
         }
 
         else if(screen_x == NUM_COLS) //check if at right end of screen
         {
-          screen_y++; //move down
+            screen_y++; //move down
         }
         screen_x %= NUM_COLS;
         screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
@@ -304,7 +283,6 @@ void putc(uint8_t c) {
 */
 void putc_dif_term(process_t* p, uint8_t c) {
     term_t* t = terminals[p->index];
-    //int index = t->term_index;
 
     if(c == '\n' || c == '\r'){ //new line case
        t->cursor_y++;
@@ -316,41 +294,26 @@ void putc_dif_term(process_t* p, uint8_t c) {
     }
     else if(c == '\b') //backspace case
     {
-
         t->cursor_x--; //move back/left one
         *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1)) = ' '; //fill in with space
-
-    //    if(index == 0){
-          *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
-        // }else if(index == 1){
-        //   *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR2;
-        // }else if(index == 2){
-        //   *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR3;
-        // }
-
+        *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
     }
     else
     {
         *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1)) = c; //fill in with character
+        *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
 
-      //  if(index == 0){
-            *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR1;
-        // }else if(index == 1){
-        //     *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR2;
-        // }else if(index == 2){
-        //     *(uint8_t *)(t->vid_mem + ((NUM_COLS * t->cursor_y + t->cursor_x) << 1) + 1) = TEXT_COLOR3;
-        // }
         t->cursor_x++;
 
         if(t->cursor_x == NUM_COLS && t->cursor_y == NUM_ROWS-1) //if typing has reached the bottom right corner, scroll down to next line
         {
-          term_scroll(t); //call helper function
-          return;
+              term_scroll(t); //call helper function
+              return;
         }
 
         else if(t->cursor_x == NUM_COLS) //check if at right end of screen
         {
-          t->cursor_y++; //move down
+            t->cursor_y++; //move down
         }
         t->cursor_x %= NUM_COLS;
         t->cursor_y = (t->cursor_y + (t->cursor_x / NUM_COLS)) % NUM_ROWS;
@@ -366,31 +329,15 @@ void putc_dif_term(process_t* p, uint8_t c) {
 */
 void scroll()
 {
-  //int index = get_curr_terminal()->term_index;
   int32_t i,j;
   for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
   {
       *(uint8_t *)(video_mem + (i << 1)) =  *(uint8_t *)(video_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
-
-  //    if(index == 0){
-          *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
-      // }else if(index == 1){
-      //     *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR2;
-      // }else if(index == 2){
-      //     *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR3;
-      // }
-
+      *(uint8_t *)(video_mem + (i << 1) + 1) = TEXT_COLOR1;
   }
   for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
     *(uint8_t *)(video_mem + (j << 1)) = ' ';
-
-//    if(index == 0){
-        *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR1;
-    // }else if(index == 1){
-    //     *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR2;
-    // }else if(index == 2){
-    //     *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR3;
-    // }
+    *(uint8_t *)(video_mem + (j << 1) + 1) = TEXT_COLOR1;
   }
   screen_x = 0;
   screen_y = NUM_ROWS-1;
@@ -408,33 +355,18 @@ void scroll()
 void term_scroll(term_t* t)
 {
   //int index = t->term_index;
-  int32_t i,j;
-  for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
-  {
-      *(uint8_t *)(t->vid_mem + (i << 1)) =  *(uint8_t *)(t->vid_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
-
-      // if(index == 0){
-          *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR1;
-      // }else if(index == 1){
-      //     *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR2;
-      // }else if(index == 2){
-      //     *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR3;
-      // }
-
-  }
-  for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
-    *(uint8_t *)(t->vid_mem + (j << 1)) = ' ';
-
-//    if(index == 0){
+    int32_t i,j;
+    for (i = 0; i < NUM_ROWS * NUM_COLS - NUM_COLS; i++)
+    {
+        *(uint8_t *)(t->vid_mem + (i << 1)) =  *(uint8_t *)(t->vid_mem + ((i+NUM_COLS) << 1)); //memory = memory in next row (i+NUM_COLS)
+        *(uint8_t *)(t->vid_mem + (i << 1) + 1) = TEXT_COLOR1;
+    }
+    for(j = (NUM_ROWS * NUM_COLS) - (NUM_COLS); j < NUM_ROWS * NUM_COLS; j++){
+        *(uint8_t *)(t->vid_mem + (j << 1)) = ' ';
         *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR1;
-  //   }else if(index == 1){
-  //       *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR2;
-  //   }else if(index == 2){
-  //       *(uint8_t *)(t->vid_mem + (j << 1) + 1) = TEXT_COLOR3;
-  //   }
-   }
-  t->cursor_x = 0;
-  t->cursor_y = NUM_ROWS-1;
+    }
+    t->cursor_x = 0;
+    t->cursor_y = NUM_ROWS-1;
   // update_cursor(screen_x,screen_y);
 }
 

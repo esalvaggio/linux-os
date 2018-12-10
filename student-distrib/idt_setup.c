@@ -129,12 +129,6 @@ void simd_exception() {
   printf("simd floating point exeption\n");
   halt(0);
 }
-/*
-void system_call_handler() {
-  printf("system call handler\n");
-  halt(0);
-}
-*/
 
 
 /* create_IDT_entry

@@ -107,8 +107,6 @@ int32_t read_data(int32_t inode, int32_t offset, int8_t* buf, int32_t length) {
     /* Calculate how many data blocks are used */
     int32_t num_data_blocks = (inode_block->length/BLOCK_SIZE) + 1;
     // /* We can only read up to the length of the file itself */
-    // if (length > inode_block->length)
-    //     length = inode_block->length;
 
     int32_t block_index, bytes_read = 0;
     int32_t data_index = offset % BLOCK_SIZE;

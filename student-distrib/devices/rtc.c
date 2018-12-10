@@ -166,36 +166,12 @@ int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes){
     int curr;
     int index = get_curr_process()->index;
 
-
+    //Wait for the flags bucket to be a positive number
     do{
         curr = flags[index];
     }while(curr == 0);
     flags[index] --;
 
-    // //Get masking data for master pic
-    // uint8_t data = inb(MASTER_8259_DATA);
-    // //Mask all ports except the slave port (only RTC will interrupt)
-    // outb(~(0x1 << SLAVE_IRQ), MASTER_8259_DATA);
-
-    /*
-    So if the actual frequency is 32 and the current process is 2, we need
-    16 different interrupts until we should return from read.
-    */
-    // int i;
-    // int num_of_times = frequency / get_curr_process()->rtc_frequency;
-    //
-    // for (i = 0; i < num_of_times; i++){
-    //     int_flag = 1;
-    //     curr = int_flag;
-    //     while(curr){
-    //         curr = int_flag;
-    //     }
-    // }
-    //Re enable all interrupts on pic
-    // outb(data, MASTER_8259_DATA);
-    //while(curr){
-    //    curr = int_flag;
-    //}
     return SUCCESS;
 }
 /* RTC close
