@@ -59,7 +59,7 @@ int curr_num_of_shells = 0;
 int32_t find_new_process() {
     int i;
     for (i = 0; i < NUM_OF_PROCESSES; i++) {
-        if (pcb_processes[i] == NULL) {
+        if (pcb_processes[i] == 0x0) {
           /* Found an open pcb */
           return i;
         }
@@ -131,7 +131,8 @@ int32_t halt(uint8_t status) {
     cli();
     process_t* curr_process = get_curr_process();
     pcb_t* curr_pcb = curr_process->curr_pcb;
-    term_t* curr_terminal = terminals[curr_process->index];
+    if (curr_pcb == 0x0) return ERROR;
+    term_t* curr_terminal = get_term_by_index(curr_process->index);
     int i;
 
     /* Check if we are trying to halt from our base shell in terminal */
@@ -145,8 +146,10 @@ int32_t halt(uint8_t status) {
           (void)total_pcbs_created(-1);
           execute((uint8_t*)"shell");
     }
+    else {
 
-    printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
+
+    //printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /*
       1. Restore parent data
         - parent process number (most important)
@@ -158,26 +161,27 @@ int32_t halt(uint8_t status) {
     int old_num = 0;
     pcb_t * pcb_parent;
 
-    if (curr_pcb != NULL) {
 
-        if (curr_pcb->parent_pcb != 0x0) {
-            current_num = curr_pcb->process_num;
-            pcb_parent = (pcb_t*)(curr_pcb->parent_pcb);
-            old_num = pcb_parent->process_num;
 
-            /* 3. Clear file descriptors */
+    if (curr_pcb->parent_pcb != 0x0) {
+        current_num = curr_pcb->process_num;
+        pcb_parent = (pcb_t*)(curr_pcb->parent_pcb);
+        old_num = pcb_parent->process_num;
 
-            for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
-                /* close all files in the pcb */
-                close(i);
-            }
+        /* 3. Clear file descriptors */
 
-            curr_pcb->in_use = 0;
-            pcb_parent->in_use = 1;
+        for (i = DYNAMIC_FILE_START; i < FILE_ARRAY_SIZE; i++){
+            /* close all files in the pcb */
+            close(i);
         }
+
+        curr_pcb->in_use = 0;
+        pcb_parent->in_use = 1;
     }
 
-    printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
+    //printf("Curr Num: %d \n", current_num);
+
+    //printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /*
           2. Restore parent paging
             - similar to how we set up paging in execute()
@@ -201,15 +205,27 @@ int32_t halt(uint8_t status) {
     int32_t old_ebp = curr_pcb->ebp;
     int32_t old_esp = curr_pcb->esp;
 
-    //Finally, Clear pcb_processes[current_num]
+    for(i = 0; i < 4; i++)
+    {
+        if(curr_terminal->pcb_processes[i] == curr_pcb)
+        {
+            curr_terminal->pcb_processes[i] = NULL;
+            break;
+        }
+    }
+
+    pcb_processes[current_num] = 0x0;
     curr_process->curr_pcb = pcb_parent;
     curr_pcb = 0x0;
     curr_terminal->num_of_pcbs--;
-    printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
+    //printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
     /* Update the number of pcbs in the terminal */
 
     (void)total_pcbs_created(-1);
+    // printf("total pcbs: %d\n", total_pcbs_created(0));
+    // printf("term pcbs: %d\n", curr_terminal->num_of_pcbs);
     //Changes ebp to value when we entered execute, and jump back to execute
+
     asm volatile ("                         \n\
                     movl %0, %%ebp          \n\
                     movl %1, %%esp          \n\
@@ -219,7 +235,20 @@ int32_t halt(uint8_t status) {
                     :
                     : "r"(old_ebp), "r"(old_esp)               // (no) ouput
                   );
+
+
+/*
+    asm volatile ("                         \n\
+                    movl %0, %%ebp          \n\
+                    movl $0, %%eax          \n\
+                    jmp END_OF_EXECUTE      \n\
+                    "
+                    :
+                    : "r"(old_ebp)              // (no) ouput
+                    );
+*/
     //Will never reach, need to include regardless
+}
     return ERROR;
 }
 /*
@@ -252,6 +281,7 @@ int32_t execute(const uint8_t* command) {
     uint8_t buf[FILENAME_SIZE];
 
     uint8_t space_flag = 0;
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     for (command_idx = 0; command_idx < command_length; command_idx++) {
         if (command[command_idx] == ' ') {
@@ -283,6 +313,7 @@ int32_t execute(const uint8_t* command) {
         buf[command_length] = '\0';
         fname = buf;
     }
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /*  2. Executable Check   ---
           - check if file is an executable
@@ -301,11 +332,12 @@ int32_t execute(const uint8_t* command) {
     /* Check if we have reached the max processes for one terminal */
     if (curr_terminal->visited == 1) {
       if (total_pcbs_created(0) == NUM_OF_PROCESSES) {
-          printf("Maximum processes running... Cannot execute.\n");
+          //printf("Maximum processes running... Cannot execute.\n");
           sti();
           return 0;
       }
     }
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     //ex_buf stores first 4 bytes to check it is a valid command
     int8_t ex_buf[EXEC_CHECK_CHARS];
@@ -327,12 +359,14 @@ int32_t execute(const uint8_t* command) {
     }
     /* Address of first instruction */
     uint32_t entry_point = *((uint32_t*)ex_buf);
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /*
       3. Paging
           - each process gets its own 4 MB page */
     uint32_t phys_addr = ADDR_8MB + (process_num * ADDR_4MB);
     page_dir_init(VIRTUAL_ADDRESS, phys_addr);
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
 
     /*
@@ -353,6 +387,7 @@ int32_t execute(const uint8_t* command) {
         sti();
         return ERROR;
     }
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* Flush TLB by writing to CR3 */
     flushTLB();
@@ -377,7 +412,8 @@ int32_t execute(const uint8_t* command) {
     // set_terminal_pcb(pcb_new);
 
     pcb_t * curr_pcb = get_pcb_ptr();
-    set_terminal_pcb(pcb_new);
+    //set_terminal_pcb(pcb_new);
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     /* First, check if there is a process running already. Because we are
     only running one shell, the running process is the parent of the process
@@ -389,12 +425,15 @@ int32_t execute(const uint8_t* command) {
         curr_pcb->in_use = 0;
     }
 
+
     pcb_new->in_use = 1;
     /* Copy arguments into pcb */
     if(space_flag == 1)
     {
       copy_string(pcb_new->args, arg_buf, ARGS_LEN);
     }
+
+            set_terminal_pcb(pcb_new);
 
     /*
       6. context switch
@@ -411,6 +450,7 @@ int32_t execute(const uint8_t* command) {
           - should not be able to leave shell!!
             -> first user-level program called in kernel.c
     */
+    //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
 
     tss.esp0 = ADDR_8MB - ADDR_8KB*(process_num) - FOUR_BYTE_ADDR;
     tss.ss0 = KERNEL_DS; //kernel stack segment = kernel_DS
@@ -430,6 +470,8 @@ int32_t execute(const uint8_t* command) {
                 );
    pcb_new->ebp = curr_ebp;
    pcb_new->esp = curr_esp;
+   //printf("EXECUTE line number %d in file %s\n", __LINE__, __FILE__);
+
     /* Explanation of following assembly code:
        We need to push 0x2B (which is the USER_DS defined in x86_desc.h:15)
        into ax, ds, es, fs, and gs to properly set up the iret context.
@@ -447,6 +489,9 @@ int32_t execute(const uint8_t* command) {
           the 10th bit (which will call an sti upon the iret, which is
           needed because we have not left the cli defined at the top)
     */
+    //printf("total pcbs: %d\n", total_pcbs_created(0));
+    //printf("term pcbs: %d\n", curr_terminal->num_of_pcbs);
+    //printf("process num: %d\n", process_num);
 
     /*
     HALT will jump to END_OF_EXECUTE tag, and perform
@@ -476,7 +521,7 @@ int32_t execute(const uint8_t* command) {
                     : "eax","edx"    // clobbered register
                   );
 
-    return SUCCESS; //shouldn't get this far
+    return ERROR; //shouldn't get this far
 }
 /*
  * read()
@@ -748,6 +793,8 @@ pcb_t * get_curr_pcb(){
 }
 
 pcb_t* get_pcb_ptr() {
+  cli();
   process_t* p = get_curr_process();
+  sti();
   return p->curr_pcb;
 }

@@ -11,7 +11,7 @@ void switch_processes(){
     /* Reset the video memory */
     uint8_t* screen_start;
     vidmap(&screen_start);
-    
+
     process_t* curr_process = get_curr_process();
     if (curr_process == 0x0)
         return;
@@ -84,6 +84,11 @@ void set_up_processes() {
     processes[0]->in_use = 1;
     curr_process = 0;
     next_process = 0;
+}
+
+process_t* get_process_by_index(int32_t index){
+    if (index <0 || index >= MAX_PROCESSES) return NULL;
+    return processes[index];
 }
 
 process_t* get_curr_process() {

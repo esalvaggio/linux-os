@@ -21,4 +21,5 @@ int next_process;
 void switch_processes();
 void set_up_processes();
 process_t* get_curr_process();
+process_t* get_process_by_index(int32_t index);
 #endif

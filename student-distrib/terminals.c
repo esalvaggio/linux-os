@@ -121,12 +121,14 @@ void set_terminal_pcb(pcb_t* pcb) {
 
     term_t* curr_terminal = get_curr_terminal();
     int process_idx = curr_terminal->term_index;
+    process_t* curr_process = get_process_by_index(curr_terminal->term_index);
     int i;
     for (i = 0; i < PROCESSES_PER_TERM; i++) {
         if (curr_terminal->pcb_processes[i] == 0x0) {
             curr_terminal->pcb_processes[i] = pcb;
             /* update the currrent process */
-            processes[process_idx]->curr_pcb = pcb;
+            // processes[process_idx]->curr_pcb = pcb;
+            curr_process->curr_pcb = pcb;
             break;
         }
     }
