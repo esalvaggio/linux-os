@@ -105,7 +105,7 @@ void print_screen_text(term_t* terminal) {
     //     }
     // }
     /* Update the cursor */
-    set_cursor(terminal->cursor_x, terminal->cursor_y);
+    update_cursor(terminal->cursor_x, terminal->cursor_y);
     memcpy((uint8_t*)video_mem, terminal->vid_mem, 2*VID_MEM_SIZE);
     sti();
 }

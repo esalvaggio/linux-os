@@ -31,7 +31,6 @@ void pit_handler(){
     // process_t* p = get_curr_process();
     cli(); //?/
 
-
     if (all_visited == 0){
         if (terminals[0]->visited != 1) {
             clear();
@@ -59,6 +58,7 @@ void pit_handler(){
             sti();
             send_eoi(PIT_IRQ);
             switch_terminal(2,0);
+            return;
         }
     }
 

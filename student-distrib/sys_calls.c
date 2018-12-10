@@ -142,6 +142,7 @@ int32_t halt(uint8_t status) {
           int pcb_index = curr_terminal->pcb_processes[0]->process_num;
           pcb_processes[pcb_index] = NULL;
           curr_terminal->pcb_processes[0] = NULL;
+          curr_process->curr_pcb = NULL;
           curr_terminal->num_of_pcbs--;
           (void)total_pcbs_created(-1);
           execute((uint8_t*)"shell");
@@ -199,11 +200,6 @@ int32_t halt(uint8_t status) {
     tss.esp0 = pcb_processes[old_num]->esp0;
     tss.ss0 = pcb_processes[old_num]->ss0; //kernel stack segment = kernel_DS
 
-    /*
-     * We need to restore the previous ebp (entering EXECUTE) in order to return
-     */
-    int32_t old_ebp = curr_pcb->ebp;
-    int32_t old_esp = curr_pcb->esp;
 
     for(i = 0; i < 4; i++)
     {
@@ -219,35 +215,28 @@ int32_t halt(uint8_t status) {
     curr_process->curr_pcb = pcb_parent;
     curr_pcb = 0x0;
     curr_terminal->num_of_pcbs--;
-    //printf("Not logical value at line number %d in file %s\n", __LINE__, __FILE__);
-    /* Update the number of pcbs in the terminal */
-
     (void)total_pcbs_created(-1);
-    // printf("total pcbs: %d\n", total_pcbs_created(0));
-    // printf("term pcbs: %d\n", curr_terminal->num_of_pcbs);
-    //Changes ebp to value when we entered execute, and jump back to execute
+
+    /* Obtain the old_ebp. The value stored at this ebp is the one we want to use
+      to return back. */
+    uint32_t* old_ebp;
     asm volatile ("                         \n\
-                    movl %0, %%ebp          \n\
-                    movl %1, %%esp          \n\
-                    movl %2, %%eax          \n\
-                    jmp END_OF_EXECUTE      \n\
+                    movl %%ebp, %0          \n\
                     "
+                    :"=r"(old_ebp)
                     :
-                    : "r"(old_ebp), "r"(old_esp), "r"((uint32_t)status)
-                    : "eax"
                   );
 
-
-/*
+    /* Dereference the pointer and update the current ebp. */
     asm volatile ("                         \n\
                     movl %0, %%ebp          \n\
-                    movl $0, %%eax          \n\
+                    movl %1, %%eax          \n\
                     jmp END_OF_EXECUTE      \n\
                     "
                     :
-                    : "r"(old_ebp)              // (no) ouput
-                    );
-*/
+                    : "r"(*old_ebp), "r"((uint32_t)status)
+                );
+
     //Will never reach, need to include regardless
 }
     return ERROR;
@@ -467,7 +456,7 @@ int32_t execute(const uint8_t* command) {
                   "
                   : "=r"(curr_ebp), "=r"(curr_esp)
                 );
-                
+
    pcb_new->ebp = curr_ebp;
    pcb_new->esp = curr_esp;
    set_terminal_pcb(pcb_new);
@@ -499,7 +488,6 @@ int32_t execute(const uint8_t* command) {
     a leave ret. HALT restores the ebp of execute.
     */
     sti();
-
     asm volatile ("                         \n\
                     movw $0x2B, %%ax        \n\
                     movw %%ax, %%ds         \n\
