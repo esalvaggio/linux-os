@@ -3,6 +3,9 @@
 #include "scheduler.h"
 #include "lib.h"
 
+#define TERM_OFFSET        7
+#define TWICE             2
+
 /* Global Terminal array */
 // term_t* terminals[NUM_OF_TERMINALS] = {0x0, 0x0, 0x0};
 int curr_total_pcbs = 0;
@@ -50,7 +53,7 @@ void create_new_term(int term_index) {
     if (terminals[term_index] != 0x0) //checks if terminal already exists
         return;
 
-    term_t* new_terminal = (term_t*)(ADDR_8MB - (term_index+7)*ADDR_8KB);
+    term_t* new_terminal = (term_t*)(ADDR_8MB - (term_index+TERM_OFFSET)*ADDR_8KB);
     new_terminal->in_use = 0;
     new_terminal->term_index = term_index;
     new_terminal->visited = 0;
@@ -116,7 +119,7 @@ void copy_screen_text(term_t* terminal) {
     // }
     terminal->cursor_x = get_x_cursor();
     terminal->cursor_y = get_y_cursor();
-    memcpy(terminal->vid_mem, (uint8_t*)video_mem, 2*VID_MEM_SIZE);
+    memcpy(terminal->vid_mem, (uint8_t*)video_mem, TWICE*VID_MEM_SIZE);
 }
 
 /*
@@ -149,7 +152,7 @@ void print_screen_text(term_t* terminal) {
     // }
     /* Update the cursor */
     update_cursor(terminal->cursor_x, terminal->cursor_y);
-    memcpy((uint8_t*)video_mem, terminal->vid_mem, 2*VID_MEM_SIZE);
+    memcpy((uint8_t*)video_mem, terminal->vid_mem, TWICE*VID_MEM_SIZE);
     sti();
 }
 
