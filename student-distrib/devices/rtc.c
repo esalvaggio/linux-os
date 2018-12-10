@@ -8,9 +8,12 @@
 #define SLAVE_IRQ          2
 #define MASTER_8259_DATA    0x21
 volatile int int_flag = 0;
-int32_t frequency;        //used for virtualization, stores current frequency
+volatile int ticks;
+int32_t frequency = 2;        //used for virtualization, stores current frequency
 //https://wiki.osdev.org/RTC
-
+int process_count[MAX_PROCESSES] = {0,0,0};
+int freqs[MAX_PROCESSES] = {2,2,2};
+int flags[MAX_PROCESSES] = {0,0,0};
 /* RTC_INIT
  * Inputs: none
  * OUTPUTS: none
@@ -19,9 +22,10 @@ int32_t frequency;        //used for virtualization, stores current frequency
  */
 void RTC_Init(){
     int_flag = 0;
+    ticks = 0;
+
     cli();
     char prev;
-
     idt[RTC_INDEX].present = 1;
     //SET_IDT_ENTRY(idt[RTC_INDEX], RTC_Handler); //index 40 is the RTC in the IDT
     SET_IDT_ENTRY(idt[RTC_INDEX], rtc_setup);
@@ -36,7 +40,7 @@ void RTC_Init(){
     outb(NMI_MASK | REG_A, CMOS_REG); // set index to A
     prev = inb(PIC_REG);	// get initial value of register A
     outb(NMI_MASK | REG_A, CMOS_REG); // reset index to A
-    outb((prev) | BOT_4, PIC_REG); // set rtc rate to 2hz
+    outb(((prev) | BOT_4) & (16-power_of_two(1024)), PIC_REG); // set rtc rate to 2hz
 
     enable_irq(SLAVE_IRQ); //enables slave port on master
     enable_irq(RTC_IRQ); //enables rtc port on slave
@@ -54,11 +58,22 @@ void RTC_Handler(){
 
     outb(REG_C, CMOS_REG);	     // select register C
     inb(PIC_REG);		             // just throw away contents
-    //test_interrupts();          /* Uncomment to test RTC with test_interrupts */
+
+    int i;
+    int effective_frequency;
+    for (i = 0; i < MAX_PROCESSES; i++){
+        process_count[i] ++;
+        effective_frequency = frequency / freqs[i];
+        if (process_count[i] >= effective_frequency){
+            process_count[i] = 0;
+            flags[i] = 1;
+        }
+    }
+
     sti();
 
     send_eoi(RTC_IRQ); //rtc port on slave
-    int_flag = 0;
+
 }
 
 
@@ -74,14 +89,19 @@ void RTC_Handler(){
  * Page 19 of datasheet
 */
 int32_t RTC_write(int32_t fd, const void* buf, int32_t nbytes){
-    if (buf == 0x0) return ERROR;
 
+    if (buf == 0x0) return ERROR;
     int32_t freq = *(int32_t *)buf;
-    get_curr_process()->rtc_frequency = freq;
-    if (freq <= frequency){
+    process_t* process = get_curr_process();
+    process->rtc_frequency = freq;
+    freqs[process->index] = freq;
+
+
+    //don't actually want to change RTC frequency - changing is time consuming
+    if (freq <= frequency)
         return SUCCESS;
-        //don't actually want to change RTC frequency
-    }
+
+
     //update with new largest frequency
     frequency = freq;
 
@@ -135,11 +155,18 @@ int32_t RTC_open(const uint8_t* filename){
  * Inputs: buf, nbytes don't do anything
 */
 int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes){
-    int_flag = 1;
+
+
     //For some stupid reason just writing while(int_flag)
     //didn't work even with the flag being volatile. But this does..
-    int curr = int_flag;
+    int curr;
+    int index = get_curr_process()->index;
 
+
+    while (curr != 1){
+        curr = flags[index];
+    }
+    flags[index] = 0;
 
     // //Get masking data for master pic
     // uint8_t data = inb(MASTER_8259_DATA);
@@ -162,9 +189,9 @@ int32_t RTC_read(int32_t fd, void* buf, int32_t nbytes){
     // }
     //Re enable all interrupts on pic
     // outb(data, MASTER_8259_DATA);
-    while(curr){
-        curr = int_flag;
-    }
+    //while(curr){
+    //    curr = int_flag;
+    //}
     return SUCCESS;
 }
 /* RTC close
